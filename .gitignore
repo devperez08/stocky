@@ -5,3 +5,4 @@ __pycache__/
 .env.local
 .agents/
 skills-lock.json
+stocky/
