@@ -39,17 +39,33 @@ class ProductCreate(ProductBase):
     pass # 'pass' significa que hereda todo sin añadir nada nuevo.
 
 # 3. PRODUCTO PARA RESPUESTA: Lo que la API le muestra al usuario en pantalla.
-# Hereda de ProductBase (ADN común) y añade los datos que generó la base de datos.
-class Product(ProductBase):
-    id: int # El ID único asignado por la DB
-    created_at: datetime # Fecha de creación automática
-    updated_at: Optional[datetime] = None
 
-    # Configuración interna de Pydantic
+# Esquema básico de una categoría para incluirla dentro del producto
+class CategoryBase(BaseModel):
+    id: int
+    name: str
+
     class Config:
-        # 'from_attributes = True' actúa como un traductor. Permite que Pydantic
-        # convierta objetos de la base de datos (SQLAlchemy) a formato JSON.
         from_attributes = True
+
+# Este es el esquema solicitado por PRO-64 para el listado
+class ProductResponse(ProductBase):
+    id: int
+    created_at: datetime
+    updated_at: Optional[datetime] = None
+    
+    # Campo anidado: Esto permite que al consultar un producto, 
+    # FastAPI traiga automáticamente la información de su categoría.
+    category: Optional[CategoryBase] = None
+
+    class Config:
+        from_attributes = True
+
+# Herencia: 'Product' ahora hereda de 'ProductResponse'.
+# Así mantenemos compatibilidad con el resto del sistema, pero obteniendo
+# todas las mejoras (campos de ID, fechas y categoría anidada) automáticamente.
+class Product(ProductResponse):
+    pass
 
 # 4. PRODUCTO PARA ACTUALIZACIÓN: Todo es opcional.
 # Usamos esto para el método PATCH o PUT parcial.

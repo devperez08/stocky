@@ -1,29 +1,74 @@
 # service se encarga de hablar con la base de datos, permite hacer las operaciones CRUD
 
+from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
-from backend.app.models.product import Product # importamos el modelo de la tabla
+from backend.app.models.product import Product # importamos el modelo de la tabla de productos
+from backend.app.models.category import Category # importamos el modelo de categorias para validarla
 from backend.app.schemas.product import ProductCreate # importamos el schema de creacion de producto
 from backend.app.schemas.product import ProductUpdate # importamos el schema de actualizacion de producto
+
+def get_product_by_sku(db: Session, sku: str):
+    # Busca un producto por su SKU único. Lo usamos para validar duplicados
+    return db.query(Product).filter(Product.sku == sku).first()
 
 def get_product_by_id(db: Session, product_id: int): # product_id es el id del producto que queremos consultar
     return db.query(Product).filter(Product.id == product_id).first()
 
-def get_products(db: Session, skip: int = 0, limit: int = 100):
-    # Solo devolvemos los productos activos
-    return db.query(Product).filter(Product.is_active == True).offset(skip).limit(limit).all()
+def get_products(db: Session, skip: int = 0, limit: int = 50, name: str = None, category_id: int = None, low_stock: bool = False):
+    """
+    Obtiene la lista de productos aplicando filtros dinámicos y paginación.
+    """
+    # 1. Iniciamos la consulta filtrando solo los productos que no han sido borrados (soft-delete)
+    query = db.query(Product).filter(Product.is_active == True)
     
-def create_product(db: Session, product_data: ProductCreate): #product_data es la variable que recibe los datos del producto
-    # 1. Creamos el objeto basado en el modelo Product
-    # Usamos **product_data.dict() para "descomprimir" los datos del usuario
-    new_product = Product(**product_data.dict())
+    # 2. Búsqueda por nombre: Usamos 'ilike' para que no importe si es mayúscula o minúscula
+    if name:
+        query = query.filter(Product.name.ilike(f"%{name}%"))
+        
+    # 3. Filtrado por categoría: Solo si el frontend envía un ID válido
+    if category_id:
+        query = query.filter(Product.category_id == category_id)
+        
+    # 4. Alerta de Stock Bajo: Compara la cantidad actual contra el umbral configurado por el usuario
+    if low_stock:
+        query = query.filter(Product.stock_quantity <= Product.min_stock_alert)
+        
+    # 5. Paginación: 'skip' salta registros y 'limit' define cuántos traer (vital para el rendimiento)
+    return query.offset(skip).limit(limit).all()
     
-    # 2. Lo agregamos a la sesión
+def create_product(db: Session, product_data: ProductCreate):
+    # --- VALIDACIÓN 1: SKU duplicado (PRO-65) ---
+    # Antes de crear nada, verificamos si el SKU ya existe en la base de datos.
+    existing_product = get_product_by_sku(db, product_data.sku)
+    if existing_product:
+        # HTTP 409 Conflict: El recurso ya existe y no podemos crearlo de nuevo
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=f"Ya existe un producto con el SKU '{product_data.sku}'"
+        )
+    
+    # --- VALIDACIÓN 2: Categoría existente (PRO-65) ---
+    # Si el usuario envió un category_id, verificamos que esa categoría exista
+    if product_data.category_id:
+        category = db.query(Category).filter(Category.id == product_data.category_id).first()
+        if not category:
+            # HTTP 404 Not Found: La categoría referenciada no existe
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Categoría con id '{product_data.category_id}' no encontrada"
+            )
+
+    # 1. Descomprimimos los datos validados del schema en el modelo SQLAlchemy.
+    # Usamos .model_dump() que es el estándar de Pydantic v2 (antes era .dict())
+    new_product = Product(**product_data.model_dump())
+    
+    # 2. Lo agregamos a la sesión (la sala de espera de SQLAlchemy)
     db.add(new_product)
     
-    # 3. Guardamos los cambios
+    # 3. Guardamos los cambios en la base de datos
     db.commit()
     
-    # 4. Refrescamos para tener el ID que le puso la base de datos
+    # 4. Refrescamos para obtener el ID y campos generados por la DB
     db.refresh(new_product)
     
     return new_product

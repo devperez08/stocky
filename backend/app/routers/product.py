@@ -1,13 +1,13 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.orm import Session
-from typing import List
+from typing import List, Optional
 
 # Importamos las herramientas que necesitamos:
 # 1. get_db: Para conectarnos a la base de datos
 # 2. schemas: Para validar la entrada y salida de datos
 # 3. service: Para ejecutar la lógica de negocio
 from backend.app.core.database import get_db
-from backend.app.schemas.product import Product, ProductCreate, ProductUpdate
+from backend.app.schemas.product import Product, ProductCreate, ProductUpdate, ProductResponse
 from backend.app.services import product as product_service
 
 # Creamos el (Router). 
@@ -19,13 +19,30 @@ router = APIRouter(
 )
 
 # --- 1. ENDPOINT PARA LISTAR (Plural) ---
-@router.get("/", response_model=List[Product])
-def read_products(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
+@router.get("/", response_model=List[ProductResponse])
+def read_products(
+    skip: int = Query(0, ge=0), 
+    limit: int = Query(50, le=200), 
+    name: Optional[str] = None,
+    category_id: Optional[int] = None,
+    low_stock: bool = False,
+    db: Session = Depends(get_db)
+):
     """
-    Este es el GET para obtener una lista. 
-    Usamos 'skip' y 'limit' para no saturar el sistema (Paginación).
+    Este es el GET para obtener una lista con filtros y paginación.
+    - skip/limit: Controlan la paginación.
+    - name: Filtra por nombre (parcial).
+    - category_id: Filtra por categoría específica.
+    - low_stock: Si es true, muestra productos por agotarse.
     """
-    products = product_service.get_products(db, skip=skip, limit=limit)
+    products = product_service.get_products(
+        db, 
+        skip=skip, 
+        limit=limit, 
+        name=name, 
+        category_id=category_id, 
+        low_stock=low_stock
+    )
     return products
 
 # --- 2. ENDPOINT PARA DETALLE (Singular) ---
@@ -44,12 +61,15 @@ def read_product(product_id: int, db: Session = Depends(get_db)):
         )
     return db_product
 
-# --- 3. ENDPOINT PARA CREAR ---
-@router.post("/", response_model=Product, status_code=status.HTTP_201_CREATED)
+# --- 3. ENDPOINT PARA CREAR (PRO-65) ---
+# Usamos ProductResponse para que la respuesta incluya la categoría anidada
+@router.post("/", response_model=ProductResponse, status_code=status.HTTP_201_CREATED)
 def create_product(product: ProductCreate, db: Session = Depends(get_db)):
     """
-    Recibe los datos del producto, los valida con ProductCreate
-    y devuelve el producto creado con su nuevo ID y el código 201.
+    Crea un nuevo producto. El servicio valida:
+    - Que el SKU no esté duplicado (devuelve 409 si existe).
+    - Que el category_id exista en la base de datos (devuelve 404 si no).
+    Las validaciones de price >= 0 y stock >= 0 las hace Pydantic automáticamente (422).
     """
     return product_service.create_product(db=db, product_data=product)
 

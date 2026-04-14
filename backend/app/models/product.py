@@ -15,14 +15,9 @@ class Product(Base):
     min_stock_alert = Column(Integer, nullable=False, default=5)  # Umbral de alerta de stock bajo
     is_active = Column(Boolean, default=True)  # Soft-delete: desactivar sin borrar
 
-    # --- LA CONEXIÓN (relaciones) ---
-    # Foreignkey nombre de la tabla y la columna destino (categories.id)
-    # id_categoria_padre es el nombre de la columna que se va a crear en la tabla products
-    store_id = Column(Integer, ForeignKey("stores.id"), nullable=True)
-    store = relationship("Store", back_populates="products")
-
-    # ¿A qué categoría pertenece?
-    # Multi-tenant
+    # --- RELACIONES (Foreign Keys) ---
+    # Multi-tenant: cada producto pertenece a una tienda (store_id).
+    # nullable=True permite desarrollo local sin autenticación (MVP).
     store_id = Column(Integer, ForeignKey("stores.id"), nullable=True)
     store = relationship("Store", back_populates="products")
 
