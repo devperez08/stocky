@@ -8,7 +8,7 @@ API_BASE_URL = st.secrets.get("API_URL")#lugar donde esta la api, obtiene la url
 #funcion para obtener datos del backend (estandar)
 def get(endpoint: str, params: dict = None):
     try:
-        response = httpx.get(f"{API_BASE_URL}{endpoint}", params=params, timeout=10)
+        response = httpx.get(f"{API_BASE_URL}{endpoint}", params=params, timeout=10, follow_redirects=True)
         response.raise_for_status()
         return response.json()
     except httpx.ConnectError:
@@ -21,7 +21,7 @@ def get(endpoint: str, params: dict = None):
 def post(endpoint: str, data: dict = None):
     """Para ENVIAR datos nuevos (Crear)"""
     try:
-        response = httpx.post(f"{API_BASE_URL}{endpoint}", json=data, timeout=10)
+        response = httpx.post(f"{API_BASE_URL}{endpoint}", json=data, timeout=10, follow_redirects=True)
         response.raise_for_status()
         return response.json()
     except Exception as e:
@@ -31,7 +31,7 @@ def post(endpoint: str, data: dict = None):
 def put(endpoint: str, data: dict = None):
     """Para ACTUALIZAR datos existentes (Editar)"""
     try:
-        response = httpx.put(f"{API_BASE_URL}{endpoint}", json=data, timeout=10)
+        response = httpx.put(f"{API_BASE_URL}{endpoint}", json=data, timeout=10, follow_redirects=True)
         response.raise_for_status()
         return response.json()
     except Exception as e:
@@ -41,7 +41,7 @@ def put(endpoint: str, data: dict = None):
 def delete(endpoint: str):
     """Para BORRAR datos"""
     try:
-        response = httpx.delete(f"{API_BASE_URL}{endpoint}", timeout=10)
+        response = httpx.delete(f"{API_BASE_URL}{endpoint}", timeout=10, follow_redirects=True)
         response.raise_for_status()
         return response.json()
     except Exception as e:
