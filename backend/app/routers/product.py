@@ -91,17 +91,21 @@ def update_product(product_id: int, product: ProductUpdate, db: Session = Depend
         )
     return db_product
 
-# --- 5. ENDPOINT PARA ELIMINAR ---
-@router.delete("/{product_id}", response_model=Product)
+# --- 5. ENDPOINT PARA ELIMINAR
+# Devolvemos un msj de confirmación junto con el ID, y estatus explícito 200 OK
+@router.delete("/{product_id}", status_code=status.HTTP_200_OK)
 def delete_product(product_id: int, db: Session = Depends(get_db)):
     """
-    Hace un 'Soft Delete'. No borra el registro físicamente,
-    solo lo marca como 'is_active = False'.
+    Realiza un 'Soft Delete'. No borra el registro físicamente,
+    solo lo marca como 'is_active = False' para preserving the historical data.
     """
     db_product = product_service.delete_product(db=db, product_id=product_id)
     if db_product is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, 
-            detail="Producto no encontrado"
+            detail="Producto no encontrado o ya ha sido desactivado"
         )
-    return db_product
+    return {
+        "message": f"Producto '{db_product.name}' desactivado exitosamente", 
+        "id": product_id
+    }

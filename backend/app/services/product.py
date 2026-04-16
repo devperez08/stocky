@@ -77,16 +77,17 @@ def delete_product(db: Session, product_id: int):
     # Reutilizamos nuestra propia función para buscar
     db_product = get_product_by_id(db, product_id)
     
-    if db_product:
-        # Si lo encontramos, lo desactivamos
-        db_product.is_active = False
-        db.commit()
-        db.refresh(db_product)
-        return db_product
+    # Validación: Si no existe o ya está inactivo, retornamos None (404)
+    if not db_product or not db_product.is_active:
+        return None
+        
+    # Si lo encontramos y está activo, hacemos el soft-delete
+    db_product.is_active = False
     
-    # Si no lo encontramos, devolvemos None para que el Router
-    # sepa que debe dar un error 404.
-    return None
+    # Guardamos los cambios (esto actualizará updated_at automáticamente)
+    db.commit()
+    
+    return db_product
 
 def update_product(db: Session, product_id: int, product_data: ProductUpdate):
     # --- PASO 1: Buscar producto ---
