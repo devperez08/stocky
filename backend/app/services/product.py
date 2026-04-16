@@ -89,21 +89,37 @@ def delete_product(db: Session, product_id: int):
     return None
 
 def update_product(db: Session, product_id: int, product_data: ProductUpdate):
-    # 1. buscar producto
+    # --- PASO 1: Buscar producto ---
     db_product = get_product_by_id(db, product_id)
     
-    if not db_product:
+    # Validación: Si no existe o está inactivo (soft-delete), retornamos None para dar 404
+    if not db_product or not db_product.is_active:
         return None
     
-    # 2. El truco: Convertimos los datos nuevos a un diccionario
-    # 'exclude_unset=True' le dice a Pydantic: "Solo tráeme los campos que el usuario REALMENTE envió"
-    update_data = product_data.dict(exclude_unset=True)
+    # --- VALIDACIÓN (PRO-66): Colisión de SKU ---
+    # Si el usuario quiere cambiar el SKU, verificamos que no pertenezca a otro producto
+    if product_data.sku is not None and product_data.sku != db_product.sku:
+        existing_sku = get_product_by_sku(db, product_data.sku)
+        if existing_sku:
+            # HTTP 409 Conflict: El SKU ya está siendo usado
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail=f"El SKU '{product_data.sku}' ya está en uso por otro producto"
+            )
     
-    # 3. Recorremos ese diccionario y actualizamos el objeto de la DB
+    # --- PASO 2: Extraer campos a actualizar ---
+    # Convertimos los datos nuevos a diccionario con model_dump() (Pydantic v2)
+    # 'exclude_unset=True' le dice a Pydantic: "Solo tráeme los campos que el usuario envió"
+    update_data = product_data.model_dump(exclude_unset=True)
+    
+    # --- PASO 3: Actualizar objeto ---
+    # Recorremos el diccionario y actualizamos el objeto de la DB a nivel memoria
     for key, value in update_data.items():
-        setattr(db_product, key, value) # Esto es como hacer db_product.campo = valor
+        setattr(db_product, key, value) # Equivalente a db_product.campo = valor
     
-    # 4. Guardamos y refrescamos
+    # --- PASO 4: Guardar y refrescar ---
+    # Al hacer commit, SQLAlchemy auto-actualiza el campo 'updated_at' 
+    # por la configuración 'onupdate=func.now()' en el modelo.
     db.commit()
     db.refresh(db_product)
     
