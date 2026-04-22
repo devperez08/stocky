@@ -7,7 +7,7 @@ from backend.app.core.database import Base, engine
 from backend.app.models import store, user, supplier, category, product, movement
 
 # --- IMPORTACIONES DE ROUTERS ---
-from backend.app.routers import product, category, movement
+from backend.app.routers import product, category, movement, stats
 
 app = FastAPI(title=settings.APP_NAME, version="0.1.0")
 
@@ -15,6 +15,7 @@ app = FastAPI(title=settings.APP_NAME, version="0.1.0")
 app.include_router(product.router)
 app.include_router(category.router)
 app.include_router(movement.router)
+app.include_router(stats.router)
 
 # 🔥 Crear las tablas automáticamente al arrancar
 @app.on_event("startup")
