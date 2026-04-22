@@ -9,7 +9,7 @@ st.set_page_config(
     initial_sidebar_state="expanded" # Esto hace que la barra lateral se muestre expandida al iniciar
 )
 
-# --- VERIFICACIÓN DE CONEXIÓN ---
+# --- VERIFICACIÓN DE CONEXIÓN --- 
 # Intentamos obtener el estatus del backend
 health = api_client.get("/health")
 
