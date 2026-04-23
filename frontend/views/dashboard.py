@@ -23,24 +23,18 @@ def render():
         return
 
     # --- 1. SECCIÓN DE INDICADORES (KPIs) ---
-    col1, col2, col3, col4, col5 = st.columns(5)
+    col1, col2, col3, col4 = st.columns(4)
     
     with col1:
-        # Formato de dinero (.2f)
-        val = summary.get("total_inventory_value", 0.0)
-        st.metric(label="💰 Valor Inventario", value=f"${val:,.2f}")
+        revenue = summary.get("total_sales_revenue_30d", 0.0)
+        st.metric(label="📊 Ventas (Últimos 30 días)", value=f"${revenue:,.2f}")
         
     with col2:
-        revenue = summary.get("total_sales_revenue", 0.0)
-        st.metric(label="📊 Ventas (Ganancia)", value=f"${revenue:,.2f}")
+        active_prods = summary.get("total_active_products", 0)
+        st.metric(label="✅ Productos Activos", value=active_prods)
         
     with col3:
-        active_prods = summary.get("total_active_products", 0)
-        st.metric(label="✅ Productos", value=active_prods)
-        
-    with col4:
         critical_count = summary.get("critical_stock_count", 0)
-        # delta_color="inverse": si hay críticos (positivo), lo pinta rojo indicando que es "malo"
         delta_val = f"{critical_count} alertas" if critical_count > 0 else "Normal"
         color = "inverse" if critical_count > 0 else "normal"
         st.metric(
@@ -50,8 +44,7 @@ def render():
             delta_color=color
         )
         
-    with col5:
-        # Sumamos la actividad de transacciones de hoy (Entradas + Salidas)
+    with col4:
         movs = summary.get("movements_last_24h", {})
         total_movs_today = movs.get("entries", 0) + movs.get("exits", 0)
         st.metric(label="🔄 Movs (24h)", value=f"{total_movs_today}")
@@ -78,17 +71,17 @@ def render():
             st.success("🎉 ¡Excelente! No tienes productos por debajo del umbral de alerta.")
 
     with col_der:
-        st.subheader("📈 Balance de Movimientos (24h)")
-        mov_data = summary.get("movements_last_24h", {"entries": 0, "exits": 0})
+        st.subheader("📈 Rendimiento de Ventas (15 días)")
+        chart_data_raw = summary.get("sales_over_time", [])
         
-        # Streamlit grafica nativamente usando pandas
-        chart_data = pd.DataFrame({
-            "Tipo": ["📥 Entradas (Compras)", "📤 Salidas (Ventas)"],
-            "Transacciones": [mov_data.get("entries", 0), mov_data.get("exits", 0)]
-        })
-        
-        # Ponemos "Tipo" como índice para que st.bar_chart coloree bien las descripciones inferiores
-        st.bar_chart(
-            chart_data.set_index("Tipo"),
-            use_container_width=True
-        )
+        if chart_data_raw:
+            chart_df = pd.DataFrame(chart_data_raw)
+            # Asegurarse de que las Fechas sean índice para gráficas bonitas
+            chart_df["date"] = pd.to_datetime(chart_df["date"]).dt.strftime("%d %b")
+            chart_df = chart_df.rename(columns={"date": "Fecha", "revenue": "Ingresos ($)"})
+            st.line_chart(
+                data=chart_df.set_index("Fecha"),
+                use_container_width=True
+            )
+        else:
+            st.info("No hay datos de ventas disponibles para los últimos 15 días.")

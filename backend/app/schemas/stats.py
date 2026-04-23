@@ -14,10 +14,15 @@ class MovementsLast24h(BaseModel):
     entries: int = Field(default=0, description="Total de entradas en las últimas 24 hrs")
     exits: int = Field(default=0, description="Total de salidas (ventas) en las últimas 24 hrs")
 
+class SalesChartData(BaseModel):
+    date: str
+    revenue: float
+
 class StatsSummary(BaseModel):
     total_inventory_value: float = Field(..., description="Valor total en dinero del inventario (precio unitario * stock)")
-    total_sales_revenue: float = Field(default=0.0, description="Total recaudado por ventas (salidas de stock)")
+    total_sales_revenue_30d: float = Field(default=0.0, description="Total recaudado por ventas en los últimos 30 días")
     total_active_products: int = Field(..., description="Cantidad total de productos activos en catálogo")
     critical_stock_count: int = Field(..., description="Cuántos productos están por debajo de su umbral de alerta")
-    low_stock_products: List[LowStockProduct] = Field(..., description="Top 5 productos con el inventario más bajo")
+    low_stock_products: List[LowStockProduct] = Field(..., description="Top 5 productos con el inventario más bajo y crítico")
     movements_last_24h: MovementsLast24h = Field(..., description="Actividad del sistema en las últimas 24 horas")
+    sales_over_time: List[SalesChartData] = Field(default=[], description="Datos de ventas diarias para graficar")

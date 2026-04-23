@@ -116,6 +116,8 @@ def movements_report(
             "producto": m.product.name if m.product else "Desconocido",
             "tipo": "Entrada" if m.movement_type == MovementType.ENTRY else "Salida",
             "cantidad": m.quantity,
+            "precio_unidad": float(m.product.price) if m.product else 0.0,
+            "total_venta": float(m.quantity * m.product.price) if m.movement_type == MovementType.EXIT and m.product else 0.0,
             "motivo": m.reason or "Sin especificar",
             "fecha": m.created_at.strftime("%Y-%m-%d %H:%M") if m.created_at else None
         }

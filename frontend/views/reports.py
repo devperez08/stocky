@@ -119,20 +119,35 @@ def render():
 
         # Estadísticas del historial filtrado
         st.subheader("📊 Resumen del Período")
-        col_s1, col_s2, col_s3 = st.columns(3)
+        col_s1, col_s2, col_s3, col_s4 = st.columns(4)
         with col_s1:
             st.metric("Total Operaciones", len(df))
         with col_s2:
             entradas = df[df["tipo"] == "Entrada"]["cantidad"].sum()
-            st.metric("📥 Total Unidades Ingresadas", int(entradas))
+            st.metric("📥 Unidades Ingresadas", int(entradas))
         with col_s3:
             salidas = df[df["tipo"] == "Salida"]["cantidad"].sum()
-            st.metric("📤 Total Unidades Salidas", int(salidas))
+            st.metric("📤 Unidades Vendidas", int(salidas))
+        with col_s4:
+            ganancias = df["total_venta"].sum() if "total_venta" in df.columns else 0.0
+            st.metric("💰 Total Ventas Generadas", f"${ganancias:,.2f}")
+
+        # --- GRÁFICA DE VENTAS ---
+        if "total_venta" in df.columns and ganancias > 0:
+            st.subheader("📈 Tendencia de Ventas (Período)")
+            # Filtramos solo salidas con ventas, limpiamos fecha para el eje
+            df_ventas = df[df["tipo"] == "Salida"].copy()
+            df_ventas["Día"] = pd.to_datetime(df_ventas["fecha"]).dt.strftime("%Y-%m-%d")
+            # Agrupar por día
+            ventas_por_dia = df_ventas.groupby("Día")["total_venta"].sum().reset_index()
+            ventas_por_dia.rename(columns={"total_venta": "Ingresos por Ventas ($)"}, inplace=True)
+            st.bar_chart(data=ventas_por_dia.set_index("Día"), use_container_width=True)
 
         st.subheader("📋 Vista Previa del Historial")
         df_display = df.rename(columns={
             "id": "ID", "producto": "Producto", "tipo": "Tipo",
-            "cantidad": "Cantidad", "motivo": "Motivo", "fecha": "Fecha"
+            "cantidad": "Cantidad", "precio_unidad": "Precio Und.", 
+            "total_venta": "Venta Total", "motivo": "Motivo", "fecha": "Fecha"
         })
         st.dataframe(df_display, use_container_width=True, hide_index=True)
 

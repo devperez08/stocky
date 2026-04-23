@@ -27,9 +27,10 @@ def get_dashboard_summary(db: Session) -> dict:
         Product.stock_quantity <= Product.min_stock_alert
     ).scalar() or 0
 
-    # 4. Top 5 productos críticos (ordenados por el de menor stock)
+    # 4. Top 5 productos críticos reales (ordenados por el de menor stock)
     low_stock_products_db = db.query(Product).filter(
-        Product.is_active == True
+        Product.is_active == True,
+        Product.stock_quantity <= Product.min_stock_alert
     ).order_by(Product.stock_quantity.asc()).limit(5).all()
 
     # Formateo manual para calzar con el schema LowStockProduct
@@ -50,22 +51,48 @@ def get_dashboard_summary(db: Session) -> dict:
     movements_dict = {str(m.movement_type.value): m.count for m in movements_24h}
 
     from backend.app.models.movement import MovementType
-    # 6. Ingresos Totales por Ventas (Salidas)
-    total_revenue = db.query(
+    # 6. Ingresos Totales por Ventas (Últimos 30 días)
+    since_30d = datetime.utcnow() - timedelta(days=30)
+    total_revenue_30d = db.query(
         func.sum(Product.price * Movement.quantity)
     ).join(Movement, Movement.product_id == Product.id).filter(
-        Movement.movement_type == MovementType.EXIT
+        Movement.movement_type == MovementType.EXIT,
+        Movement.created_at >= since_30d
     ).scalar() or 0.0
+
+    # 7. Datos de ventas diarias para el gráfico (Últimos 15 días)
+    since_15d = datetime.utcnow() - timedelta(days=15)
+    recent_sales = db.query(
+        Movement.created_at, Product.price, Movement.quantity
+    ).join(Product, Movement.product_id == Product.id).filter(
+        Movement.movement_type == MovementType.EXIT,
+        Movement.created_at >= since_15d
+    ).all()
+
+    sales_by_date = {}
+    # Llenar ceros para los últimos 15 días para la gráfica
+    for i in range(15, -1, -1):
+        dt = (datetime.utcnow() - timedelta(days=i)).strftime("%Y-%m-%d")
+        sales_by_date[dt] = 0.0
+        
+    for m_date, p_price, m_qty in recent_sales:
+        if m_date:
+            dt_str = m_date.strftime("%Y-%m-%d")
+            if dt_str in sales_by_date:
+                sales_by_date[dt_str] += float(p_price * m_qty)
+                
+    sales_chart_data = [{"date": k, "revenue": round(v, 2)} for k, v in sales_by_date.items()]
 
     # Empaquetamos todo
     return {
         "total_inventory_value": round(float(total_value), 2),
-        "total_sales_revenue": round(float(total_revenue), 2),
+        "total_sales_revenue_30d": round(float(total_revenue_30d), 2),
         "total_active_products": total_products,
         "critical_stock_count": critical_stock_count,
         "low_stock_products": low_stock_products,
         "movements_last_24h": {
             "entries": movements_dict.get("entry", 0),
             "exits": movements_dict.get("exit", 0)
-        }
+        },
+        "sales_over_time": sales_chart_data
     }
