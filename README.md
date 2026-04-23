@@ -11,10 +11,13 @@
 
 ## 🚀 Inicio Rápido (Recomendado: Docker)
 
-La forma más sencilla de poner Stocky en marcha sin configurar nada en tu computadora es usando **Docker**.
+La forma más sencilla de poner Stocky en marcha es usando **Docker**.
 
-### Requisitos:
-- Tener instalado [Docker Desktop](https://www.docker.com/products/docker-desktop/).
+### ⚠️ Requisitos Obligatorios
+Antes de empezar, asegúrate de tener instalados estos dos programas:
+1.  **Git**: [Descargar aquí](https://git-scm.com/downloads) (Para descargar el código).
+2.  **Docker Desktop**: [Descargar aquí](https://www.docker.com/products/docker-desktop/) (El motor que corre el programa). 
+    *   *Nota: Una vez instalado, asegúrate de que Docker esté ABIERTO antes de correr Stocky.*
 
 ### Paso 1: Clonar el Proyecto
 Abre una terminal en la carpeta donde quieras guardar el programa y ejecuta:
