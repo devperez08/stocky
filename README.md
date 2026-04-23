@@ -22,9 +22,16 @@ La forma más sencilla de poner Stocky en marcha sin configurar nada en tu compu
    ```bash
    docker compose up --build
    ```
-3. **¡Listo!** El sistema se abrirá automáticamente (o puedes entrar manualmente):
+3. **¡Listo!** El sistema se abrirá automáticamente:
    - **Interfaz (Dashboard):** [http://localhost:8501](http://localhost:8501)
    - **Documentación API:** [http://localhost:8000/docs](http://localhost:8000/docs)
+
+### ✨ Automatización Total (Windows)
+Si quieres que Stocky se abra **solo** al encender la computadora:
+1. Localiza el archivo `launcher_windows.bat` en la carpeta del proyecto.
+2. Presiona `Win + R`, escribe `shell:startup` y presiona Enter.
+3. Copia el archivo `launcher_windows.bat` (o crea un acceso directo) y pégalo en esa carpeta que se abrió.
+4. ¡Eso es todo! La próxima vez que prendas el PC, Stocky se iniciará y abrirá el navegador por ti.
 
 ---
 
