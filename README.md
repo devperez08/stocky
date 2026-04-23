@@ -9,7 +9,7 @@ Esta versión de Stocky está optimizada para equipos antiguos que no pueden eje
 Debes instalar los siguientes programas antes de comenzar:
 
 1.  **Python 3.8**: [Descargar instalador de 64 bits](https://www.python.org/ftp/python/3.8.10/python-3.8.10-amd64.exe)
-    *   *Importante:* En la instalación, marca la casilla que dice **"Add Python 3.8 to PATH"**.
+    - _Importante:_ En la instalación, marca la casilla que dice **"Add Python 3.8 to PATH"**.
 2.  **Git**: [Descargar aquí](https://git-scm.com/download/win)
 
 ---
@@ -19,12 +19,14 @@ Debes instalar los siguientes programas antes de comenzar:
 Abre una terminal (CMD) y sigue estos pasos por única vez:
 
 1.  **Clonar el código:**
+
     ```bash
     git clone https://github.com/devperez08/stocky.git -b win7
     cd stocky
     ```
 
 2.  **Crear el Entorno Virtual:**
+
     ```bash
     python -m venv venv
     ```
@@ -50,7 +52,9 @@ Para que el programa se abra solo cada vez que enciendas la computadora:
 ---
 
 ## ⚙️ Uso Manual
+
 Si solo quieres abrirlo de vez en cuando, simplemente haz doble clic en `launcher_win7.bat`.
 
 ---
-*Nota: Se recomienda mantener actualizado el navegador Chrome o Edge en Windows 7 para una mejor experiencia visual.*
+
+_Nota: Se recomienda mantener actualizado el navegador Chrome o Edge en Windows 7 para una mejor experiencia visual._
