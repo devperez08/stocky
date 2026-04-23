@@ -7,3 +7,4 @@ __pycache__/
 skills-lock.json
 stocky/
 .streamlit/
+*.db
