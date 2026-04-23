@@ -23,18 +23,22 @@ def render():
         return
 
     # --- 1. SECCIÓN DE INDICADORES (KPIs) ---
-    col1, col2, col3, col4 = st.columns(4)
+    col1, col2, col3, col4, col5 = st.columns(5)
     
     with col1:
         # Formato de dinero (.2f)
         val = summary.get("total_inventory_value", 0.0)
-        st.metric(label="💰 Valor del Inventario", value=f"${val:,.2f}")
+        st.metric(label="💰 Valor Inventario", value=f"${val:,.2f}")
         
     with col2:
-        active_prods = summary.get("total_active_products", 0)
-        st.metric(label="✅ Productos Activos", value=active_prods)
+        revenue = summary.get("total_sales_revenue", 0.0)
+        st.metric(label="📊 Ventas (Ganancia)", value=f"${revenue:,.2f}")
         
     with col3:
+        active_prods = summary.get("total_active_products", 0)
+        st.metric(label="✅ Productos", value=active_prods)
+        
+    with col4:
         critical_count = summary.get("critical_stock_count", 0)
         # delta_color="inverse": si hay críticos (positivo), lo pinta rojo indicando que es "malo"
         delta_val = f"{critical_count} alertas" if critical_count > 0 else "Normal"
@@ -46,11 +50,11 @@ def render():
             delta_color=color
         )
         
-    with col4:
+    with col5:
         # Sumamos la actividad de transacciones de hoy (Entradas + Salidas)
         movs = summary.get("movements_last_24h", {})
         total_movs_today = movs.get("entries", 0) + movs.get("exits", 0)
-        st.metric(label="🔄 Actividad (24h)", value=f"{total_movs_today} Movs.")
+        st.metric(label="🔄 Movs (24h)", value=f"{total_movs_today}")
 
     st.divider()
 

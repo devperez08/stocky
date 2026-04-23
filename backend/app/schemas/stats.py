@@ -16,6 +16,7 @@ class MovementsLast24h(BaseModel):
 
 class StatsSummary(BaseModel):
     total_inventory_value: float = Field(..., description="Valor total en dinero del inventario (precio unitario * stock)")
+    total_sales_revenue: float = Field(default=0.0, description="Total recaudado por ventas (salidas de stock)")
     total_active_products: int = Field(..., description="Cantidad total de productos activos en catálogo")
     critical_stock_count: int = Field(..., description="Cuántos productos están por debajo de su umbral de alerta")
     low_stock_products: List[LowStockProduct] = Field(..., description="Top 5 productos con el inventario más bajo")

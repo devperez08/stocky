@@ -39,10 +39,15 @@ def render():
         # Transformar a DataFrame para visualización
         df = pd.DataFrame(products)
         
-        # Acomodar columnas según qué nos devuelve el backend
-        # Tratamos de garantizar que esten las necesarias
-        columns_to_show = ["id", "name", "sku", "price", "stock_quantity", "min_stock_alert", "is_active"]
-        # Filtrar solo columnas que sí devolvió la API
+        # Mapear category_id a nombre usando cat_options invertido
+        id_to_cat = {v: k for k, v in cat_options.items() if v is not None}
+        if "category_id" in df.columns:
+            df["Categoría"] = df["category_id"].map(id_to_cat).fillna("Ninguna")
+            columns_to_show = ["id", "name", "sku", "Categoría", "price", "stock_quantity", "min_stock_alert", "is_active"]
+        else:
+            columns_to_show = ["id", "name", "sku", "price", "stock_quantity", "min_stock_alert", "is_active"]
+            
+        # Filtrar solo columnas que sí devolvió la API (o que agregamos)
         existing_cols = [c for c in columns_to_show if c in df.columns]
         
         view_df = df[existing_cols].copy()

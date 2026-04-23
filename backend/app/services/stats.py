@@ -49,9 +49,18 @@ def get_dashboard_summary(db: Session) -> dict:
     # Convertimos la lista de tuplas a un diccionario amigable { "entry": 5, "exit": 12 }
     movements_dict = {str(m.movement_type.value): m.count for m in movements_24h}
 
+    from backend.app.models.movement import MovementType
+    # 6. Ingresos Totales por Ventas (Salidas)
+    total_revenue = db.query(
+        func.sum(Product.price * Movement.quantity)
+    ).join(Movement, Movement.product_id == Product.id).filter(
+        Movement.movement_type == MovementType.EXIT
+    ).scalar() or 0.0
+
     # Empaquetamos todo
     return {
         "total_inventory_value": round(float(total_value), 2),
+        "total_sales_revenue": round(float(total_revenue), 2),
         "total_active_products": total_products,
         "critical_stock_count": critical_stock_count,
         "low_stock_products": low_stock_products,

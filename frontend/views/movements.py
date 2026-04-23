@@ -98,8 +98,8 @@ def render():
             df = pd.DataFrame(movements)
             
             # Limpieza de datos con Pandas para visualización (PRO-71)
-            # 1. Formatear Fecha
-            df["Fecha"] = pd.to_datetime(df["created_at"]).dt.strftime("%d/%m/%Y %H:%M")
+            # 1. Formatear Fecha (Soporte robusto para ISO strings con/sin zona horaria)
+            df["Fecha"] = pd.to_datetime(df["created_at"], errors='coerce', utc=True).dt.strftime("%d/%m/%Y %H:%M")
             # 2. Iconos para el tipo
             df["Tipo"] = df["movement_type"].apply(lambda x: "📥 ENTRADA" if x == "entry" else "📤 SALIDA")
             

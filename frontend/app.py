@@ -27,7 +27,7 @@ with st.sidebar:
     st.divider()
     menu = st.radio(
         "Navegación",
-        options=["Dashboard", "Productos", "Movimientos", "Reportes"],
+        options=["Dashboard", "Productos", "Categorías", "Movimientos", "Reportes"],
         label_visibility="collapsed"
     )
 
@@ -36,6 +36,8 @@ if menu == "Dashboard":
     from views import dashboard; dashboard.render()
 elif menu == "Productos":
     from views import products; products.render()
+elif menu == "Categorías":
+    from views import categories; categories.render()
 elif menu == "Movimientos":
     from views import movements; movements.render()
 elif menu == "Reportes":
