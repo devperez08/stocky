@@ -16,12 +16,19 @@ La forma más sencilla de poner Stocky en marcha sin configurar nada en tu compu
 ### Requisitos:
 - Tener instalado [Docker Desktop](https://www.docker.com/products/docker-desktop/).
 
-### Pasos:
-1. Abre una terminal en la carpeta del proyecto.
-2. Ejecuta el comando mágico:
-   ```bash
-   docker compose up --build
-   ```
+### Paso 1: Clonar el Proyecto
+Abre una terminal en la carpeta donde quieras guardar el programa y ejecuta:
+```bash
+git clone https://github.com/devperez08/stocky.git
+cd stocky
+```
+
+### Paso 2: Iniciar Stocky
+Ejecuta el comando mágico:
+```bash
+docker compose up -d --build
+```
+
 3. **¡Listo!** El sistema se abrirá automáticamente:
    - **Interfaz (Dashboard):** [http://localhost:8501](http://localhost:8501)
    - **Documentación API:** [http://localhost:8000/docs](http://localhost:8000/docs)
