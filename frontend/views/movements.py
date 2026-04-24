@@ -107,7 +107,7 @@ def render():
             view_df = df[["product_name", "Tipo", "quantity", "reason", "Fecha"]].copy()
             view_df.columns = ["Producto", "Tipo", "Cantidad", "Motivo", "Fecha"]
             
-            st.dataframe(view_df, use_container_width=True)
+            st.dataframe(view_df)
         else:
             st.info("No se han registrado movimientos aún.")
 

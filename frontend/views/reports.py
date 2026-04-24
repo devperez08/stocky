@@ -56,7 +56,7 @@ def render():
             "alerta_minima": "Alerta Mínima", "estado_stock": "Estado",
             "creado_en": "Creado En"
         })
-        st.dataframe(df_display, use_container_width=True)
+        st.dataframe(df_display)
         
         # --- BOTONES DE DESCARGA (PRO-75 criterion) ---
         st.subheader("⬇️ Descargar Reporte")
@@ -70,7 +70,7 @@ def render():
                 data=csv_bytes,
                 file_name="inventario_stocky.csv",
                 mime="text/csv",
-                use_container_width=True
+                
             )
         with col_excel:
             # Generamos el Excel en memoria con Pandas + openpyxl
@@ -82,7 +82,7 @@ def render():
                 data=buffer.getvalue(),
                 file_name="inventario_stocky.xlsx",
                 mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                use_container_width=True
+                
             )
 
     # =========================================================
@@ -141,7 +141,7 @@ def render():
             # Agrupar por día
             ventas_por_dia = df_ventas.groupby("Día")["total_venta"].sum().reset_index()
             ventas_por_dia.rename(columns={"total_venta": "Ingresos por Ventas ($)"}, inplace=True)
-            st.bar_chart(data=ventas_por_dia.set_index("Día"), use_container_width=True)
+            st.bar_chart(data=ventas_por_dia.set_index("Día"))
 
         st.subheader("📋 Vista Previa del Historial")
         df_display = df.rename(columns={
@@ -149,7 +149,7 @@ def render():
             "cantidad": "Cantidad", "precio_unidad": "Precio Und.", 
             "total_venta": "Venta Total", "motivo": "Motivo", "fecha": "Fecha"
         })
-        st.dataframe(df_display, use_container_width=True)
+        st.dataframe(df_display)
 
         # --- DESCARGA ---
         st.subheader("⬇️ Descargar Reporte")
@@ -162,7 +162,7 @@ def render():
                 data=csv_bytes,
                 file_name="movimientos_stocky.csv",
                 mime="text/csv",
-                use_container_width=True
+                
             )
         with col_excel2:
             buffer = io.BytesIO()
@@ -173,5 +173,5 @@ def render():
                 data=buffer.getvalue(),
                 file_name="movimientos_stocky.xlsx",
                 mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                use_container_width=True
+                
             )

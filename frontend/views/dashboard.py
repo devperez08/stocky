@@ -9,7 +9,7 @@ def render():
         st.title("📊 Dashboard Principal")
         st.write("Visión general e indicadores clave de tu inventario en tiempo real.")
     with col_t2:
-        if st.button("🔄 Actualizar Datos", use_container_width=True):
+        if st.button("🔄 Actualizar Datos"):
             st.experimental_rerun()
             
     st.markdown("---")
@@ -64,7 +64,7 @@ def render():
             # Damos formato humano a las columnas
             df_alert.columns = ["ID", "Producto", "Stock Actual", "Mínimo Ideal"]
             # Lo estilizamos
-            st.dataframe(df_alert, use_container_width=True)
+            st.dataframe(df_alert)
             if critical_count > 5:
                  st.caption(f"Mostrando los 5 más críticos (Hay {critical_count} en total al borde).")
         else:
@@ -81,7 +81,7 @@ def render():
             chart_df = chart_df.rename(columns={"date": "Fecha", "revenue": "Ingresos ($)"})
             st.line_chart(
                 data=chart_df.set_index("Fecha"),
-                use_container_width=True
+                
             )
         else:
             st.info("No hay datos de ventas disponibles para los últimos 15 días.")

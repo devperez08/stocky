@@ -66,7 +66,7 @@ def render():
             st.dataframe(
                 df_display, 
                  
-                use_container_width=True
+                
             )
             st.caption(f"Total: {len(df_display)}")
             

@@ -60,7 +60,7 @@ def render():
         }
         view_df.rename(columns={k: v for k, v in rename_map.items() if k in view_df.columns}, inplace=True)
         
-        st.dataframe(view_df, use_container_width=True)
+        st.dataframe(view_df)
     else:
         st.info("No hay productos que coincidan con la búsqueda o el inventario está vacío.")
 
