@@ -27,9 +27,8 @@ with st.sidebar:
     st.caption("Sistema de Gestión de Inventarios")
     st.markdown("---")
     menu = st.radio(
-        "Navegación",
-        options=["Dashboard", "Productos", "Categorías", "Movimientos", "Reportes"],
-        label_visibility="collapsed"
+        "",
+        options=["Dashboard", "Productos", "Categorías", "Movimientos", "Reportes"]
     )
 
 # Ruteo de páginas (usa 'views' para evitar conflicto con el sistema nativo de Streamlit)
