@@ -1,102 +1,90 @@
-# 📦 Stocky — Sistema Inteligente de Inventarios
+# 📘 Manual de Instalación y Uso de Stocky
 
-![Docker](https://img.shields.io/badge/Docker-2496ED?style=for-the-badge&logo=docker&logoColor=white)
-![Python](https://img.shields.io/badge/Python-3776AB?style=for-the-badge&logo=python&logoColor=white)
-![FastAPI](https://img.shields.io/badge/FastAPI-005571?style=for-the-badge&logo=fastapi)
-![Streamlit](https://img.shields.io/badge/Streamlit-FF4B4B?style=for-the-badge&logo=Streamlit&logoColor=white)
-
-**Stocky** es una solución multi-tenant diseñada para pequeños y medianos negocios que buscan profesionalizar su control de stock, registrar ventas y visualizar el rendimiento financiero en tiempo real.
+Bienvenido al manual oficial de **Stocky**, el sistema inteligente de inventarios. Este documento te guiará paso a paso para instalar el sistema en tu computadora, comenzar a usarlo y configurarlo para que se abra automáticamente cuando enciendas tu equipo, ya sea en Windows o en Linux.
 
 ---
 
-## 🚀 Inicio Rápido (Recomendado: Docker)
+## 🛠️ Parte 1: Instalación Rápida (Recomendado con Docker)
 
-La forma más sencilla de poner Stocky en marcha es usando **Docker**.
+El sistema está empaquetado para que funcione en cualquier equipo sin complicaciones de configuración, utilizando **Docker**.
 
-### ⚠️ Requisitos Obligatorios
-Antes de empezar, asegúrate de tener instalados estos dos programas:
-1.  **Git**: [Descargar aquí](https://git-scm.com/downloads) (Para descargar el código).
-2.  **Docker Desktop**: [Descargar aquí](https://www.docker.com/products/docker-desktop/) (El motor que corre el programa). 
-    *   *💡 Recomendación:* Una vez instalado, entra a la configuración de Docker Desktop (engranaje) y marca la opción **"Start Docker Desktop when you log in"**. Esto hará que el sistema esté siempre listo sin que tengas que abrirlo manualmente.
+### Requisitos Previos
 
-### Paso 1: Clonar el Proyecto
-Abre una terminal en la carpeta donde quieras guardar el programa y ejecuta:
-```bash
-git clone https://github.com/devperez08/stocky.git
-cd stocky
-```
+Antes de instalar Stocky, necesitas asegurar que tienes estos programas:
+1. **Git**: Para descargar los archivos del proyecto. [Descargar Git](https://git-scm.com/downloads)
+2. **Docker Desktop**: Es el motor que arranca todo el sistema sin que tengas que instalar bases de datos o lenguajes de programación. [Descargar Docker Desktop](https://www.docker.com/products/docker-desktop/)
 
-### Paso 2: Iniciar Stocky
-Ejecuta el comando mágico:
-```bash
-docker compose up -d --build
-```
+> **Tip Importante:** Durante la instalación de Docker, asegúrate de activar la opción que dice **"Start Docker Desktop when you log in"** (Iniciar Docker al arrancar la computadora). Esto es vital para la automatización.
 
-3. **¡Listo!** El sistema se abrirá automáticamente:
-   - **Interfaz (Dashboard):** [http://localhost:8501](http://localhost:8501)
-   - **Documentación API:** [http://localhost:8000/docs](http://localhost:8000/docs)
+### Paso a Paso para Instalar
 
-### ✨ Automatización Total (Windows)
-Si quieres que Stocky se abra **solo** al encender la computadora:
-1. Localiza el archivo `launcher_windows.bat` en la carpeta del proyecto.
-2. Presiona `Win + R`, escribe `shell:startup` y presiona Enter.
-3. Copia el archivo `launcher_windows.bat` (o crea un acceso directo) y pégalo en esa carpeta que se abrió.
-4. ¡Eso es todo! La próxima vez que prendas el PC, Stocky se iniciará y abrirá el navegador por ti.
+1. **Descargar el sistema:** Abre una consola (Símbolo del sistema en Windows o Terminal en Linux) y escribe el siguiente comando:
+   ```bash
+   git clone https://github.com/devperez08/stocky.git
+   cd stocky
+   ```
+2. **Primer Inicio:** Ejecuta el siguiente comando para levantar el sistema y prepararlo por primera vez:
+   ```bash
+   docker compose up -d --build
+   ```
+   *La primera vez que lo ejecutes tardará un poco porque estará descargando lo necesario. Las próximas veces será casi inmediato.*
 
 ---
 
-## 🛠️ Instalación Local (Desarrolladores)
+## 🤖 Parte 2: Automatización del Encendido
 
-Si prefieres correrlo directamente con Python:
+Una vez que comprobaste que el sistema funciona, puedes configurarlo para que se abra solo cada vez que enciendas tu PC y te lo muestre automáticamente en tu navegador web.
 
-### 1. Preparar el entorno:
-```bash
-# Crear y activar entorno virtual
-python -m venv venv
-source venv/bin/activate  # En Windows: venv\Scripts\activate
+### 🪟 Para Sistemas Windows
 
-# Instalar dependencias
-pip install -r requirements.txt
-```
+Hemos preparado un archivo especial llamado `launcher_windows.bat` que arranca el sistema y abre tu navegador web. Para que esto suceda al iniciar sesión:
 
-### 2. Ejecutar servicios:
-Necesitas abrir **dos terminales**:
+1. Busca el archivo `launcher_windows.bat` dentro de la carpeta `stocky` que descargaste.
+2. Da clic derecho y selecciona **"Copiar"**.
+3. Presiona en tu teclado las teclas `Windows + R` al mismo tiempo, esto abrirá una pequeña ventana llamada "Ejecutar".
+4. Escribe exactamente **`shell:startup`** y presiona la tecla Enter.
+5. Se abrirá una carpeta vacía. Da clic derecho en un espacio en blanco y selecciona **"Pegar acceso directo"** (es mejor pegar como acceso directo al archivo original).
+6. ¡Listo! Al reiniciar tu Windows, el sistema abrirá la página automáticamente.
 
-- **Terminal 1 (Backend):**
-  ```bash
-  uvicorn backend.app.main:app --reload
-  ```
-- **Terminal 2 (Frontend):**
-  ```bash
-  streamlit run frontend/app.py
-  ```
+### 🐧 Para Sistemas Linux
 
----
+Para sistemas basados en Linux (como Ubuntu), hemos provisto un script `run_stocky.sh`.
 
-## 📁 Estructura del Proyecto
-
-```text
-├── backend/            # Lógica central (FastAPI + SQLAlchemy)
-├── frontend/           # Interfaz de usuario (Streamlit)
-├── scripts/            # Utilidades (Seed de datos, reset de DB)
-├── stocky.db           # Base de datos SQLite (Local)
-└── docker-compose.yml  # Orquestación de contenedores
-```
+1. Abre una terminal dentro de la carpeta `stocky`.
+2. Otorga permisos de ejecución al script si no los tiene:
+   ```bash
+   chmod +x run_stocky.sh
+   ```
+3. Ahora, lo agregaremos a los "Aplicaciones al inicio" (Startup Applications). Esto depende de tu entorno de escritorio (GNOME, KDE, etc.):
+   - Presiona tu tecla de menú y busca **"Aplicaciones al inicio"** (o "Startup Applications").
+   - Añade una nueva entrada.
+   - **Nombre:** Stocky
+   - **Comando:** Da explorar o escribe la ruta completa hacia el archivo `run_stocky.sh` (Ejemplo: `/home/tu_usuario/stocky/run_stocky.sh`).
+   - Da clic a "Guardar".
+4. ¡Listo! La próxima vez que inicies sesión en Linux, una terminal se abrirá en segundo plano y lanzará el sistema directamente en tu navegador por defecto.
 
 ---
 
-## 🧹 Mantenimiento
+## 🖥️ Parte 3: ¿Cómo Utilizar Stocky?
 
-- **Limpiar base de datos:** Si quieres empezar de cero, usa `python scripts/reset_db.py`.
-- **Poblar con datos demo:** Para ver cómo luce el sistema con data, usa `python scripts/seed_data.py`.
+El sistema cuenta con un panel intuitivo localizado en: **http://localhost:8501**
 
----
+### 1. Panel Principal (Dashboard)
+Aquí podrás observar un resumen de qué tan bien van tus números: el total invertido en inventario, ventas, y qué productos están bajo inventario de manera gráfica.
 
-## ✨ Características Principales
-- ✅ **Dashboard en tiempo real:** KPIs financieros y de stock.
-- ✅ **Gestión de Productos:** CRUD completo con soporte de categorías.
-- ✅ **Movimientos:** Registro de entradas y salidas con validación de stock.
-- ✅ **Reportes:** Exportación a CSV y Excel con análisis financiero.
+### 2. Gestión de Categorías
+Antes de agregar productos, es ideal que crees algunas categorías (Ej. "Lácteos", "Electrodomésticos", "Snacks"). Esto te ayudará a filtrar y encontrar tus cosas más adelante.
 
----
-*Desarrollado con ❤️ por el equipo de Stocky.*
+### 3. Gestión de Productos
+En esta sección puedes ver, filtrar, y crear tu catálogo.
+- **Crear Producto:** Dirígete a la pestaña "➕ Agregar Producto". Rellena los datos básicos. 
+  *(Nota: El código de barras/SKU se autogenera internamente por el sistema mientras no dispongas de una pistola lectora, así que el formulario ahora no te pedirá que introduzcas el SKU manualmente, haciendo la carga más rápida).*
+- **Editar/Desactivar:** Puedes dar de baja artículos o cambiar su precio/cantidad utilizando las pestañas correspondientes.
+
+### 4. Entradas y Salidas (Movimientos)
+Toda entrada de nuevo material al almacén o toda venta **debe** ser registrada aquí para que el total de inventario (Stock Actual) cambie de manera correcta:
+- Si recibes mercancía, ingresa una **Entrada**.
+- Si vendes un artículo, registra una **Salida** (y el dinero de la venta figurará ingresado).
+
+### 5. Reportes
+¡Evalúa tus ventas! Puedes establecer rangos de fechas (ej: revisar las ventas de este mes) y exportarlo a un archivo de Excel para entregarlo a tu contador o para guardarlo de manera personal.
