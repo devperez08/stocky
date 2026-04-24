@@ -70,7 +70,7 @@ def render():
                     result = post("/movements", payload)
                     if result:
                         st.success(f"Movimiento registrado correctamente para '{selected_name}'.")
-                        st.rerun()
+                        st.experimental_rerun()
 
     with col_hist:
         st.subheader("📜 Historial de Operaciones")
@@ -107,7 +107,7 @@ def render():
             view_df = df[["product_name", "Tipo", "quantity", "reason", "Fecha"]].copy()
             view_df.columns = ["Producto", "Tipo", "Cantidad", "Motivo", "Fecha"]
             
-            st.dataframe(view_df, hide_index=True, use_container_width=True)
+            st.dataframe(view_df, use_container_width=True)
         else:
             st.info("No se han registrado movimientos aún.")
 

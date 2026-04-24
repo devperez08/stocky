@@ -10,9 +10,9 @@ def render():
         st.write("Visión general e indicadores clave de tu inventario en tiempo real.")
     with col_t2:
         if st.button("🔄 Actualizar Datos", use_container_width=True):
-            st.rerun()
+            st.experimental_rerun()
             
-    st.divider()
+    st.markdown("---")
 
     # --- CARGA DE DATOS DESDE EL BACKEND ---
     # Usamos el endpoint centralizado y sumamente rápido que precalcula los KPIs.
@@ -49,7 +49,7 @@ def render():
         total_movs_today = movs.get("entries", 0) + movs.get("exits", 0)
         st.metric(label="🔄 Movs (24h)", value=f"{total_movs_today}")
 
-    st.divider()
+    st.markdown("---")
 
     # --- 2. SECCIÓN VISUAL Y ALERTAS ---
     col_izq, col_der = st.columns(2)
@@ -64,7 +64,7 @@ def render():
             # Damos formato humano a las columnas
             df_alert.columns = ["ID", "Producto", "Stock Actual", "Mínimo Ideal"]
             # Lo estilizamos
-            st.dataframe(df_alert, hide_index=True, use_container_width=True)
+            st.dataframe(df_alert, use_container_width=True)
             if critical_count > 5:
                  st.caption(f"Mostrando los 5 más críticos (Hay {critical_count} en total al borde).")
         else:

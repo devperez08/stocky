@@ -14,7 +14,7 @@ def render():
         index=0
     )
 
-    st.divider()
+    st.markdown("---")
 
     # =========================================================
     # BLOQUE 1: REPORTE DE INVENTARIO
@@ -56,7 +56,7 @@ def render():
             "alerta_minima": "Alerta Mínima", "estado_stock": "Estado",
             "creado_en": "Creado En"
         })
-        st.dataframe(df_display, use_container_width=True, hide_index=True)
+        st.dataframe(df_display, use_container_width=True)
         
         # --- BOTONES DE DESCARGA (PRO-75 criterion) ---
         st.subheader("⬇️ Descargar Reporte")
@@ -149,7 +149,7 @@ def render():
             "cantidad": "Cantidad", "precio_unidad": "Precio Und.", 
             "total_venta": "Venta Total", "motivo": "Motivo", "fecha": "Fecha"
         })
-        st.dataframe(df_display, use_container_width=True, hide_index=True)
+        st.dataframe(df_display, use_container_width=True)
 
         # --- DESCARGA ---
         st.subheader("⬇️ Descargar Reporte")

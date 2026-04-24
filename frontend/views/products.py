@@ -60,11 +60,11 @@ def render():
         }
         view_df.rename(columns={k: v for k, v in rename_map.items() if k in view_df.columns}, inplace=True)
         
-        st.dataframe(view_df, use_container_width=True, hide_index=True)
+        st.dataframe(view_df, use_container_width=True)
     else:
         st.info("No hay productos que coincidan con la búsqueda o el inventario está vacío.")
 
-    st.divider()
+    st.markdown("---")
 
     # --- 3. ACCIONES CRUD (TABS) ---
     tab_create, tab_edit, tab_delete = st.tabs(["➕ Agregar Producto", "✏️ Editar Producto", "🗑️ Desactivar Producto"])
@@ -103,7 +103,7 @@ def render():
                     res = post("/products", payload)
                     if res and "id" in res:
                         st.success(f"Producto '{c_name}' creado exitosamente.")
-                        st.rerun()
+                        st.experimental_rerun()
                     else:
                         st.error("Error al crear el producto. ¿SKU duplicado?")
 
@@ -131,7 +131,7 @@ def render():
                     res_edit = put(f"/products/{selected_prod['id']}", payload_edit)
                     if res_edit and "id" in res_edit:
                         st.success("Producto modificado correctamente.")
-                        st.rerun()
+                        st.experimental_rerun()
                     else:
                         st.error("Error al actualizar. Verifica que el SKU no choque con otro.")
         else:
@@ -149,7 +149,7 @@ def render():
                 res_del = delete(f"/products/{selected_del_prod['id']}")
                 if res_del and "message" in res_del:
                     st.success(res_del["message"])
-                    st.rerun()
+                    st.experimental_rerun()
                 else:
                     st.error("No se pudo desactivar el producto.")
         else:

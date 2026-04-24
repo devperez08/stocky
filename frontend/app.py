@@ -24,7 +24,7 @@ with st.sidebar:
         st.caption("Asegúrate de que la API esté corriendo.")
         
     st.caption("Sistema de Gestión de Inventarios")
-    st.divider()
+    st.markdown("---")
     menu = st.radio(
         "Navegación",
         options=["Dashboard", "Productos", "Categorías", "Movimientos", "Reportes"],

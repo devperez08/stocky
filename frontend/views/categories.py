@@ -33,7 +33,7 @@ def render():
                     result = post("/categories", payload)
                     if result:
                         st.success(f"¡Categoría '{name}' creada con éxito!")
-                        st.rerun()  # Recarga la página para mostrar la nueva categoría
+                        st.experimental_rerun()  # Recarga la página para mostrar la nueva categoría
     
     # SECCIÓN: LISTADO DE CATEGORÍAS
     with col2:
@@ -65,7 +65,7 @@ def render():
             
             st.dataframe(
                 df_display, 
-                hide_index=True, 
+                 
                 use_container_width=True
             )
             st.caption(f"Total: {len(df_display)}")
