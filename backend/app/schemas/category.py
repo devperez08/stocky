@@ -19,7 +19,7 @@ class CategoryResponse(CategoryBase):
     created_at: datetime
 
     class Config:
-        from_attributes = True
+        orm_mode = True
 
 # 4. PARA ACTUALIZACIÓN: Todo opcional para permitir PATCH/PUT parcial
 class CategoryUpdate(BaseModel):

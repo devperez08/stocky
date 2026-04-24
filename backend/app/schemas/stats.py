@@ -8,7 +8,7 @@ class LowStockProduct(BaseModel):
     alert: int = Field(..., description="Umbral mínimo configurado")
 
     class Config:
-        from_attributes = True
+        orm_mode = True
 
 class MovementsLast24h(BaseModel):
     entries: int = Field(default=0, description="Total de entradas en las últimas 24 hrs")

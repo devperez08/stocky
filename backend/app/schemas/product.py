@@ -46,7 +46,7 @@ class CategoryBase(BaseModel):
     name: str
 
     class Config:
-        from_attributes = True
+        orm_mode = True
 
 # Este es el esquema solicitado por PRO-64 para el listado
 class ProductResponse(ProductBase):
@@ -59,7 +59,7 @@ class ProductResponse(ProductBase):
     category: Optional[CategoryBase] = None
 
     class Config:
-        from_attributes = True
+        orm_mode = True
 
 # Herencia: 'Product' ahora hereda de 'ProductResponse'.
 # Así mantenemos compatibilidad con el resto del sistema, pero obteniendo
