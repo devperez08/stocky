@@ -74,7 +74,6 @@ def render():
         with st.form("create_product_form"):
             st.subheader("Nuevo Producto")
             c_name = st.text_input("Nombre *")
-            c_sku = st.text_input("SKU / Código de barras *")
             c_desc = st.text_area("Descripción")
             
             c_col1, c_col2 = st.columns(2)
@@ -88,12 +87,14 @@ def render():
             submitted_create = st.form_submit_button("Crear Producto", type="primary")
             
             if submitted_create:
-                if not c_name or not c_sku:
-                    st.error("El Nombre y el SKU son obligatorios.")
+                if not c_name:
+                    st.error("El Nombre es obligatorio.")
                 else:
+                    import uuid
+                    generated_sku = f"SKU-{uuid.uuid4().hex[:8].upper()}"
                     payload = {
                         "name": c_name,
-                        "sku": c_sku,
+                        "sku": generated_sku,
                         "description": c_desc if c_desc else None,
                         "price": c_price,
                         "stock_quantity": c_stock,
@@ -105,7 +106,7 @@ def render():
                         st.success(f"Producto '{c_name}' creado exitosamente.")
                         st.rerun()
                     else:
-                        st.error("Error al crear el producto. ¿SKU duplicado?")
+                        st.error("Error al crear el producto.")
 
     # Tab de Edición
     with tab_edit:
@@ -116,7 +117,6 @@ def render():
             
             with st.form("edit_product_form"):
                 e_name = st.text_input("Nombre", value=selected_prod.get("name", ""))
-                e_sku = st.text_input("SKU", value=selected_prod.get("sku", ""))
                 e_price = st.number_input("Precio ($)", min_value=0.0, value=float(selected_prod.get("price", 0.0)), step=0.01)
                 e_alert = st.number_input("Alerta Mínima", min_value=0, value=int(selected_prod.get("min_stock_alert", 5)), step=1)
                 
@@ -124,7 +124,6 @@ def render():
                 if submitted_edit:
                     payload_edit = {
                         "name": e_name,
-                        "sku": e_sku,
                         "price": e_price,
                         "min_stock_alert": e_alert
                     }
@@ -133,14 +132,14 @@ def render():
                         st.success("Producto modificado correctamente.")
                         st.rerun()
                     else:
-                        st.error("Error al actualizar. Verifica que el SKU no choque con otro.")
+                        st.error("Error al actualizar.")
         else:
             st.warning("No hay productos disponibles para editar.")
 
     # Tab de Eliminación (Soft Delete)
     with tab_delete:
         if products:
-            del_prod_options = {f"{p['name']} (SKU: {p.get('sku', '')})": p for p in products}
+            del_prod_options = {f"{p['name']}": p for p in products}
             selected_del_label = st.selectbox("Seleccione el producto a desactivar", options=list(del_prod_options.keys()))
             selected_del_prod = del_prod_options[selected_del_label]
             
