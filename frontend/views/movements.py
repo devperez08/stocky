@@ -54,7 +54,7 @@ def render():
             if mov_type == "exit" and quantity > current_stock:
                 st.error(f"⚠️ ¡Atención! No tienes suficiente stock. Faltan {quantity - current_stock} unidades.")
             
-            submitted = st.form_submit_button("✅ Confirmar y Registrar", type="primary")
+            submitted = st.form_submit_button("✅ Confirmar y Registrar")
 
             if submitted:
                 # El backend ya valida, pero mejor validar también aquí para feedback rápido

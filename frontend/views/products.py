@@ -85,7 +85,7 @@ def render():
                 c_stock = st.number_input("Stock Inicial", min_value=0, step=1)
                 c_alert = st.number_input("Alerta Mínima", min_value=0, value=5, step=1)
             
-            submitted_create = st.form_submit_button("Crear Producto", type="primary")
+            submitted_create = st.form_submit_button("Crear Producto")
             
             if submitted_create:
                 if not c_name or not c_sku:
@@ -145,7 +145,7 @@ def render():
             selected_del_prod = del_prod_options[selected_del_label]
             
             st.error(f"⚠️ Estás a punto de desactivar '{selected_del_prod['name']}'. Ya no aparecerá en ventas.")
-            if st.button("Confirmar Desactivación", type="primary"):
+            if st.button("Confirmar Desactivación"):
                 res_del = delete(f"/products/{selected_del_prod['id']}")
                 if res_del and "message" in res_del:
                     st.success(res_del["message"])

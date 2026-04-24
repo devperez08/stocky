@@ -20,7 +20,7 @@ def render():
             name = st.text_input("Nombre de la Categoría (*)", placeholder="Ej: Herramientas, Mascotas...")
             description = st.text_area("Descripción", placeholder="Breve descripción opcional", max_chars=200)
             
-            submitted = st.form_submit_button("Guardar Categoría", type="primary")
+            submitted = st.form_submit_button("Guardar Categoría")
             
             if submitted:
                 if not name.strip():
