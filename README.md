@@ -40,14 +40,14 @@ Abre una terminal (CMD) y sigue estos pasos por única vez:
 
 ## ✨ Automatización (Iniciar al prender la PC)
 
-Para que el programa se abra solo cada vez que enciendas la computadora:
+Para que el programa se abra solo y **sin ventanas negras estorbando**:
 
-1.  Localiza el archivo `launcher_win7.bat` en la carpeta del proyecto.
+1.  Localiza el archivo **`silencioso.vbs`** en la carpeta del proyecto.
 2.  Hazle clic derecho y selecciona **"Crear acceso directo"**.
 3.  Presiona `Inicio` > `Todos los programas` > Haz clic derecho en la carpeta **"Inicio"** y selecciona **"Abrir"**.
 4.  Pega el acceso directo que creaste dentro de esa carpeta.
 
-¡Listo! A partir de ahora, cada vez que inicies sesión, el Backend y el Frontend se levantarán automáticamente.
+¡Listo! Al entrar a Windows, el sistema correrá en segundo plano y abrirá tu navegador automáticamente.
 
 ---
 
