@@ -4,13 +4,26 @@ import os
 import httpx # Importamos httpx para hacer peticiones al backend
 import streamlit as st # Importamos streamlit para usar st.secrets
 
-# Fallback para versiones antiguas de Streamlit en Win7
-try:
-    _secret_url = st.secrets.get("API_URL")
-except Exception:
-    _secret_url = None
+def get_api_base_url():
+    """Obtiene la URL de la API de forma segura."""
+    # Prioridad 1: Variable de Entorno
+    env_url = os.environ.get("API_URL")
+    if env_url:
+        return env_url
+    
+    # Prioridad 2: Streamlit Secrets (con manejo de error para Win7)
+    try:
+        if hasattr(st, "secrets"):
+            secret_url = st.secrets.get("API_URL")
+            if secret_url:
+                return secret_url
+    except Exception:
+        pass
+        
+    # Prioridad 3: Default Local
+    return "http://localhost:8000"
 
-API_BASE_URL = os.environ.get("API_URL") or _secret_url or "http://localhost:8000"
+API_BASE_URL = get_api_base_url()
 
 #funcion para obtener datos del backend (estandar)
 def get(endpoint: str, params: dict = None):

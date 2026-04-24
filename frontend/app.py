@@ -1,13 +1,14 @@
 import streamlit as st
-from utils import api_client
 
-#importante siempre primero la configuracion de la pagina
+# 🔥 SIEMPRE PRIMERO la configuración de la página (Vital en Win7/Legacy)
 st.set_page_config(
     page_title="Stocky — Gestión de Inventarios",
     page_icon="📦",
-    layout="wide", # Esto hace que la app use todo el ancho de la pantalla
-    initial_sidebar_state="expanded" # Esto hace que la barra lateral se muestre expandida al iniciar
+    layout="wide",
+    initial_sidebar_state="expanded"
 )
+
+from utils import api_client
 
 # --- VERIFICACIÓN DE CONEXIÓN --- 
 # Intentamos obtener el estatus del backend
