@@ -59,8 +59,8 @@ def create_product(db: Session, product_data: ProductCreate):
             )
 
     # 1. Descomprimimos los datos validados del schema en el modelo SQLAlchemy.
-    # Usamos .model_dump() que es el estándar de Pydantic v2 (antes era .dict())
-    new_product = Product(**product_data.model_dump())
+    # Usamos .dict() que es el estándar de Pydantic v2 (antes era .dict())
+    new_product = Product(**product_data.dict())
     
     # 2. Lo agregamos a la sesión (la sala de espera de SQLAlchemy)
     db.add(new_product)
@@ -109,9 +109,9 @@ def update_product(db: Session, product_id: int, product_data: ProductUpdate):
             )
     
     # --- PASO 2: Extraer campos a actualizar ---
-    # Convertimos los datos nuevos a diccionario con model_dump() (Pydantic v2)
+    # Convertimos los datos nuevos a diccionario con dict() (Pydantic v2)
     # 'exclude_unset=True' le dice a Pydantic: "Solo tráeme los campos que el usuario envió"
-    update_data = product_data.model_dump(exclude_unset=True)
+    update_data = product_data.dict(exclude_unset=True)
     
     # --- PASO 3: Actualizar objeto ---
     # Recorremos el diccionario y actualizamos el objeto de la DB a nivel memoria

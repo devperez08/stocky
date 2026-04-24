@@ -28,7 +28,7 @@ def create_category(db: Session, category_data: CategoryCreate):
         )
     
     # 2. Persistir
-    new_category = Category(**category_data.model_dump())
+    new_category = Category(**category_data.dict())
     db.add(new_category)
     db.commit()
     db.refresh(new_category)
@@ -49,7 +49,7 @@ def update_category(db: Session, category_id: int, category_data: CategoryUpdate
                 detail=f"No se puede renombrar: el nombre '{category_data.name}' ya está en uso"
             )
 
-    update_data = category_data.model_dump(exclude_unset=True)
+    update_data = category_data.dict(exclude_unset=True)
     for key, value in update_data.items():
         setattr(db_category, key, value)
     
