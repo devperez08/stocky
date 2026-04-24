@@ -4,8 +4,13 @@ import os
 import httpx # Importamos httpx para hacer peticiones al backend
 import streamlit as st # Importamos streamlit para usar st.secrets
 
-# Prioridad: Variable de Entorno (Docker) > secrets.toml (Local) > Fallback Seguro
-API_BASE_URL = os.environ.get("API_URL") or st.secrets.get("API_URL") or "http://localhost:8000"
+# Fallback para versiones antiguas de Streamlit en Win7
+try:
+    _secret_url = st.secrets.get("API_URL")
+except Exception:
+    _secret_url = None
+
+API_BASE_URL = os.environ.get("API_URL") or _secret_url or "http://localhost:8000"
 
 #funcion para obtener datos del backend (estandar)
 def get(endpoint: str, params: dict = None):
