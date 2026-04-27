@@ -1,5 +1,6 @@
 import streamlit as st
 import pandas as pd
+import uuid
 from utils.api_client import get, post, put, delete
 
 def render():
@@ -54,11 +55,16 @@ def render():
         
         # Renombrar en español para el usuario
         rename_map = {
-            "id": "ID", "name": "Nombre", "sku": "SKU", 
+            "id": "ID", "name": "Nombre",
             "price": "Precio ($)", "stock_quantity": "Stock Actual", 
             "min_stock_alert": "Alerta", "is_active": "Activo"
         }
+        # Nota: SKU está oculto momentáneamente (PRO-77)
         view_df.rename(columns={k: v for k, v in rename_map.items() if k in view_df.columns}, inplace=True)
+        
+        # Quitamos el SKU de la vista
+        if "sku" in view_df.columns:
+            view_df = view_df.drop(columns=["sku"])
         
         st.dataframe(view_df, use_container_width=True, hide_index=True)
     else:
@@ -74,6 +80,7 @@ def render():
         with st.form("create_product_form"):
             st.subheader("Nuevo Producto")
             c_name = st.text_input("Nombre *")
+            # SKU removido momentáneamente (AUTO-generado)
             c_desc = st.text_area("Descripción")
             
             c_col1, c_col2 = st.columns(2)
@@ -90,11 +97,11 @@ def render():
                 if not c_name:
                     st.error("El Nombre es obligatorio.")
                 else:
-                    import uuid
-                    generated_sku = f"SKU-{uuid.uuid4().hex[:8].upper()}"
+                    # Autogeneramos SKU único para el backend
+                    auto_sku = f"PROD-{uuid.uuid4().hex[:8].upper()}"
                     payload = {
                         "name": c_name,
-                        "sku": generated_sku,
+                        "sku": auto_sku,
                         "description": c_desc if c_desc else None,
                         "price": c_price,
                         "stock_quantity": c_stock,
@@ -111,12 +118,14 @@ def render():
     # Tab de Edición
     with tab_edit:
         if products:
-            prod_options = {f"{p['name']} (SKU: {p.get('sku', '')})": p for p in products}
+            prod_options = {f"{p['name']}": p for p in products}
             selected_edit_label = st.selectbox("Seleccione el producto a editar", options=list(prod_options.keys()))
             selected_prod = prod_options[selected_edit_label]
             
             with st.form("edit_product_form"):
                 e_name = st.text_input("Nombre", value=selected_prod.get("name", ""))
+                # SKU Oculto (Mantenemos el valor original)
+                e_sku = selected_prod.get("sku", "")
                 e_price = st.number_input("Precio ($)", min_value=0.0, value=float(selected_prod.get("price", 0.0)), step=0.01)
                 e_alert = st.number_input("Alerta Mínima", min_value=0, value=int(selected_prod.get("min_stock_alert", 5)), step=1)
                 
@@ -124,6 +133,7 @@ def render():
                 if submitted_edit:
                     payload_edit = {
                         "name": e_name,
+                        "sku": e_sku,
                         "price": e_price,
                         "min_stock_alert": e_alert
                     }
