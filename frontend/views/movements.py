@@ -46,8 +46,15 @@ def render():
                 format_func=lambda x: "📥 Entrada (Compra/Ingreso)" if x == "entry" else "📤 Salida (Venta/Baja)"
             )
 
-            # Cantidad y Razón
+            # Cantidad, Precio y Razón
             quantity = st.number_input("Cantidad", min_value=1, step=1, value=1)
+            
+            default_price = selected_product.get("cost_price", 0.0) if mov_type == "entry" else selected_product.get("price", 0.0)
+            unit_price = st.number_input(
+                "Costo Unitario" if mov_type == "entry" else "Precio de Venta", 
+                min_value=0.0, step=0.01, value=float(default_price)
+            )
+            
             reason = st.text_input("Razón / Motivo", placeholder="Ej: Venta #101, Reabastecimiento...")
 
             # --- ALERTA VISUAL DE STOCK INSUFICIENTE (PRO-71) ---
@@ -65,6 +72,7 @@ def render():
                         "product_id": selected_product["id"],
                         "movement_type": mov_type,
                         "quantity": quantity,
+                        "unit_price": unit_price,
                         "reason": reason if reason else "Sin motivo especificado"
                     }
                     result = post("/movements", payload)
@@ -103,9 +111,12 @@ def render():
             # 2. Iconos para el tipo
             df["Tipo"] = df["movement_type"].apply(lambda x: "📥 ENTRADA" if x == "entry" else "📤 SALIDA")
             
+            # Formatear valores monetarios
+            df["Total ($)"] = df.apply(lambda row: f"-${row['total_value']:,.2f}" if row['movement_type'] == 'entry' else f"+${row['total_value']:,.2f}", axis=1)
+            
             # Seleccionar y renombrar columnas
-            view_df = df[["product_name", "Tipo", "quantity", "reason", "Fecha"]].copy()
-            view_df.columns = ["Producto", "Tipo", "Cantidad", "Motivo", "Fecha"]
+            view_df = df[["product_name", "Tipo", "quantity", "unit_price", "Total ($)", "reason", "Fecha"]].copy()
+            view_df.columns = ["Producto", "Tipo", "Cantidad", "Precio U.", "Total ($)", "Motivo", "Fecha"]
             
             st.dataframe(view_df, hide_index=True, use_container_width=True)
         else:

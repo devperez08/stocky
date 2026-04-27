@@ -1,5 +1,5 @@
 import enum # Para definir las opciones permitidas
-from sqlalchemy import Column, Integer, String, Enum, DateTime, ForeignKey, func
+from sqlalchemy import Column, Integer, String, Enum, DateTime, ForeignKey, func, Float
 from sqlalchemy.orm import relationship
 from backend.app.core.database import Base
 
@@ -13,6 +13,7 @@ class Movement(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     quantity = Column(Integer, nullable=False)
+    unit_price = Column(Float, nullable=False, default=0.0)
     reason = Column(String(255), nullable=True)  # Motivo: "Compra a proveedor", "Venta a cliente"
     movement_type = Column(Enum(MovementType), nullable=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
