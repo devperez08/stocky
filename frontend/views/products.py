@@ -1,5 +1,6 @@
 import streamlit as st
 import pandas as pd
+import uuid
 from utils.api_client import get, post, put, delete
 
 def render():
@@ -54,11 +55,16 @@ def render():
         
         # Renombrar en español para el usuario
         rename_map = {
-            "id": "ID", "name": "Nombre", "sku": "SKU", 
+            "id": "ID", "name": "Nombre",
             "price": "Precio ($)", "stock_quantity": "Stock Actual", 
             "min_stock_alert": "Alerta", "is_active": "Activo"
         }
+        # Nota: SKU está oculto momentáneamente (PRO-77)
         view_df.rename(columns={k: v for k, v in rename_map.items() if k in view_df.columns}, inplace=True)
+        
+        # Quitamos el SKU de la vista
+        if "sku" in view_df.columns:
+            view_df = view_df.drop(columns=["sku"])
         
         st.dataframe(view_df, use_container_width=True, hide_index=True)
     else:
@@ -74,7 +80,7 @@ def render():
         with st.form("create_product_form"):
             st.subheader("Nuevo Producto")
             c_name = st.text_input("Nombre *")
-            c_sku = st.text_input("SKU / Código de barras *")
+            # SKU removido momentáneamente (AUTO-generado)
             c_desc = st.text_area("Descripción")
             
             c_col1, c_col2 = st.columns(2)
@@ -88,12 +94,14 @@ def render():
             submitted_create = st.form_submit_button("Crear Producto", type="primary")
             
             if submitted_create:
-                if not c_name or not c_sku:
-                    st.error("El Nombre y el SKU son obligatorios.")
+                if not c_name:
+                    st.error("El Nombre es obligatorio.")
                 else:
+                    # Autogeneramos SKU único para el backend
+                    auto_sku = f"PROD-{uuid.uuid4().hex[:8].upper()}"
                     payload = {
                         "name": c_name,
-                        "sku": c_sku,
+                        "sku": auto_sku,
                         "description": c_desc if c_desc else None,
                         "price": c_price,
                         "stock_quantity": c_stock,
@@ -116,7 +124,8 @@ def render():
             
             with st.form("edit_product_form"):
                 e_name = st.text_input("Nombre", value=selected_prod.get("name", ""))
-                e_sku = st.text_input("SKU", value=selected_prod.get("sku", ""))
+                # SKU Oculto (Mantenemos el valor original)
+                e_sku = selected_prod.get("sku", "")
                 e_price = st.number_input("Precio ($)", min_value=0.0, value=float(selected_prod.get("price", 0.0)), step=0.01)
                 e_alert = st.number_input("Alerta Mínima", min_value=0, value=int(selected_prod.get("min_stock_alert", 5)), step=1)
                 
