@@ -33,9 +33,17 @@ def create_movement(db: Session, movement_data: MovementCreate):
         product.stock_quantity += movement_data.quantity
 
     # 3. Preparar registro histórico
+    final_price = movement_data.unit_price
+    if final_price is None:
+        if movement_data.movement_type == MovementType.EXIT:
+            final_price = product.price
+        else:
+            final_price = product.cost_price
+
     new_movement = Movement(
         product_id=movement_data.product_id,
         quantity=movement_data.quantity,
+        unit_price=final_price,
         movement_type=movement_data.movement_type,
         reason=movement_data.reason
         # asumiendo que store_id & user_id aún no son requeridos en esta iteración.
@@ -54,6 +62,8 @@ def create_movement(db: Session, movement_data: MovementCreate):
         "product_name": product.name,
         "movement_type": new_movement.movement_type,
         "quantity": new_movement.quantity,
+        "unit_price": float(new_movement.unit_price),
+        "total_value": float(new_movement.quantity * new_movement.unit_price),
         "reason": new_movement.reason,
         "created_at": new_movement.created_at
     }
@@ -91,6 +101,8 @@ def get_movements(
             "product_name": m.product.name if m.product else "Desconocido",
             "movement_type": m.movement_type,
             "quantity": m.quantity,
+            "unit_price": float(m.unit_price),
+            "total_value": float(m.quantity * m.unit_price),
             "reason": m.reason,
             "created_at": m.created_at
         })

@@ -129,25 +129,31 @@ def render():
             salidas = df[df["tipo"] == "Salida"]["cantidad"].sum()
             st.metric("📤 Unidades Vendidas", int(salidas))
         with col_s4:
-            ganancias = df["total_venta"].sum() if "total_venta" in df.columns else 0.0
-            st.metric("💰 Total Ventas Generadas", f"${ganancias:,.2f}")
+            ganancias = df[df["tipo"] == "Salida"]["total"].sum() if "total" in df.columns else 0.0
+            gastos = df[df["tipo"] == "Entrada"]["total"].sum() if "total" in df.columns else 0.0
+            balance = ganancias + gastos # Nota: gastos ya es negativo
+            st.metric("💰 Balance Financiero", f"${balance:,.2f}", delta=f"Ing: ${ganancias:,.2f} | Gastos: ${abs(gastos):,.2f}", delta_color="normal")
 
-        # --- GRÁFICA DE VENTAS ---
-        if "total_venta" in df.columns and ganancias > 0:
-            st.subheader("📈 Tendencia de Ventas (Período)")
-            # Filtramos solo salidas con ventas, limpiamos fecha para el eje
-            df_ventas = df[df["tipo"] == "Salida"].copy()
-            df_ventas["Día"] = pd.to_datetime(df_ventas["fecha"]).dt.strftime("%Y-%m-%d")
+        # --- GRÁFICA DE TENDENCIA FINANCIERA ---
+        if "total" in df.columns:
+            st.subheader("📈 Tendencia Financiera (Período)")
+            df_plot = df.copy()
+            df_plot["Día"] = pd.to_datetime(df_plot["fecha"]).dt.strftime("%Y-%m-%d")
+            # Separar ingresos y gastos (gastos en absoluto para la gráfica)
+            df_plot["Ingresos"] = df_plot.apply(lambda x: x["total"] if x["tipo"] == "Salida" else 0, axis=1)
+            df_plot["Gastos"] = df_plot.apply(lambda x: abs(x["total"]) if x["tipo"] == "Entrada" else 0, axis=1)
+            
             # Agrupar por día
-            ventas_por_dia = df_ventas.groupby("Día")["total_venta"].sum().reset_index()
-            ventas_por_dia.rename(columns={"total_venta": "Ingresos por Ventas ($)"}, inplace=True)
-            st.bar_chart(data=ventas_por_dia.set_index("Día"))
+            tendencia_por_dia = df_plot.groupby("Día")[["Ingresos", "Gastos"]].sum().reset_index()
+            st.bar_chart(data=tendencia_por_dia.set_index("Día"))
 
         st.subheader("📋 Vista Previa del Historial")
-        df_display = df.rename(columns={
+        df_format = df.copy()
+        df_format["total"] = df_format["total"].apply(lambda x: f"-${abs(x):,.2f}" if x < 0 else f"+${x:,.2f}")
+        df_display = df_format.rename(columns={
             "id": "ID", "producto": "Producto", "tipo": "Tipo",
             "cantidad": "Cantidad", "precio_unidad": "Precio Und.", 
-            "total_venta": "Venta Total", "motivo": "Motivo", "fecha": "Fecha"
+            "total": "Impacto Financiero", "motivo": "Motivo", "fecha": "Fecha"
         })
         st.dataframe(df_display)
 
@@ -156,6 +162,7 @@ def render():
         col_csv2, col_excel2 = st.columns(2)
         
         with col_csv2:
+            # En Win7 Streamlit 1.12, st.download_button no necesita use_container_width
             csv_bytes = df.to_csv(index=False).encode("utf-8-sig")
             st.download_button(
                 label="📄 Descargar CSV",
