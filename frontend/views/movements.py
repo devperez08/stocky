@@ -25,39 +25,44 @@ def render():
     with col_form:
         st.subheader("📦 Nuevo Registro")
         
-        with st.form("movement_form"):
-            # Selector de Producto
-            selected_name = st.selectbox("Seleccione Producto", options=list(product_map.keys()))
-            selected_product = product_map.get(selected_name)
-            
-            # --- MÉTRICA DE STOCK EN VIVO (PRO-71) ---
-            current_stock = selected_product.get("stock_quantity", 0)
-            st.metric(
-                label="Stock Disponible", 
-                value=current_stock,
-                delta="Crítico" if current_stock <= selected_product.get("min_stock_alert", 5) else None,
-                delta_color="inverse"
-            )
+        # SELECTOR Y TIPO FUERA DEL FORM para interactividad inmediata
+        selected_name = st.selectbox("Seleccione Producto", options=list(product_map.keys()))
+        selected_product = product_map.get(selected_name)
+        
+        # --- MÉTRICA DE STOCK EN VIVO ---
+        current_stock = selected_product.get("stock_quantity", 0)
+        st.metric(
+            label="Stock Disponible", 
+            value=current_stock,
+            delta="Crítico" if current_stock <= selected_product.get("min_stock_alert", 5) else None,
+            delta_color="inverse"
+        )
 
-            # Tipo de Movimiento
-            mov_type = st.radio(
-                "Tipo de Movimiento", 
-                options=["entry", "exit"],
-                format_func=lambda x: "📥 Entrada (Compra/Ingreso)" if x == "entry" else "📤 Salida (Venta/Baja)"
-            )
+        mov_type = st.radio(
+            "Tipo de Operación", 
+            options=["entry", "exit"],
+            format_func=lambda x: "📥 Entrada (Compra de Mercancía)" if x == "entry" else "📤 Salida (Venta/Baja)"
+        )
 
-            # Cantidad, Precio y Razón
+        with st.form("movement_submission"):
+            # Cantidad y Razón
             quantity = st.number_input("Cantidad", min_value=1, step=1, value=1)
             
-            default_price = selected_product.get("cost_price", 0.0) if mov_type == "entry" else selected_product.get("price", 0.0)
-            unit_price = st.number_input(
-                "Costo Unitario" if mov_type == "entry" else "Precio de Venta", 
-                min_value=0.0, step=0.01, value=float(default_price)
-            )
+            # Lógica de precio automatizada
+            if mov_type == "entry":
+                default_cost = selected_product.get("cost_price", 0.0)
+                unit_price_val = st.number_input(
+                    "Costo Unitario de Compra ($)", 
+                    min_value=0.0, step=0.01, value=float(default_cost),
+                    help="Ingresa cuánto te costó cada unidad en esta compra."
+                )
+            else:
+                unit_price_val = float(selected_product.get("price", 0.0))
+                st.info(f"💰 Precio de venta: **${unit_price_val:,.2f}** (Valor del catálogo)")
             
             reason = st.text_input("Razón / Motivo", placeholder="Ej: Venta #101, Reabastecimiento...")
 
-            # --- ALERTA VISUAL DE STOCK INSUFICIENTE (PRO-71) ---
+            # --- ALERTA VISUAL DE STOCK INSUFICIENTE ---
             if mov_type == "exit" and quantity > current_stock:
                 st.error(f"⚠️ ¡Atención! No tienes suficiente stock. Faltan {quantity - current_stock} unidades.")
             
@@ -72,7 +77,7 @@ def render():
                         "product_id": selected_product["id"],
                         "movement_type": mov_type,
                         "quantity": quantity,
-                        "unit_price": unit_price,
+                        "unit_price": unit_price_val,
                         "reason": reason if reason else "Sin motivo especificado"
                     }
                     result = post("/movements", payload)
@@ -83,7 +88,7 @@ def render():
     with col_hist:
         st.subheader("📜 Historial de Operaciones")
         
-        # Filtro rápido de historial (PRO-71)
+        # Filtro rápido de historial
         filter_type = st.selectbox(
             "Filtrar historial por:", 
             options=["Todos", "📥 Entradas", "📤 Salidas"],
@@ -105,10 +110,8 @@ def render():
         if movements:
             df = pd.DataFrame(movements)
             
-            # Limpieza de datos con Pandas para visualización (PRO-71)
-            # 1. Formatear Fecha (Soporte robusto para ISO strings con/sin zona horaria)
+            # Limpieza de datos con Pandas para visualización
             df["Fecha"] = pd.to_datetime(df["created_at"], errors='coerce', utc=True).dt.strftime("%d/%m/%Y %H:%M")
-            # 2. Iconos para el tipo
             df["Tipo"] = df["movement_type"].apply(lambda x: "📥 ENTRADA" if x == "entry" else "📤 SALIDA")
             
             # Formatear valores monetarios
@@ -121,6 +124,3 @@ def render():
             st.dataframe(view_df)
         else:
             st.info("No se han registrado movimientos aún.")
-
-# DIDÁCTICA MENTOR: Usamos st.columns para dar balance visual a la interfaz.
-# El widget st.metric es excelente para llamar la atención del operario sobre el inventario.
