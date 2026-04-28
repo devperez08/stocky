@@ -10,7 +10,10 @@ try:
 except Exception:
     _secret_url = None
 
-API_BASE_URL = os.environ.get("API_URL") or _secret_url or "http://localhost:8000"
+def get_api_base_url():
+    return os.environ.get("API_URL") or _secret_url or "http://127.0.0.1:8000"
+
+API_BASE_URL = get_api_base_url()
 
 #funcion para obtener datos del backend (estandar)
 def get(endpoint: str, params: dict = None):
@@ -18,11 +21,17 @@ def get(endpoint: str, params: dict = None):
         response = httpx.get(f"{API_BASE_URL}{endpoint}", params=params, timeout=10, follow_redirects=True)
         response.raise_for_status()
         return response.json()
-    except httpx.ConnectError:
+    except (httpx.ConnectError, httpx.ConnectTimeout):
         st.error("No se puede conectar con el servidor. ¿Está el backend corriendo?")
+        return None
+    except httpx.ReadTimeout:
+        st.error("El servidor tardó demasiado en responder (Timeout).")
         return None
     except httpx.HTTPStatusError as e:
         st.error(f"Error del servidor: {e.response.status_code}")
+        return None
+    except Exception as e:
+        st.error(f"Error inesperado: {str(e)}")
         return None
 
 def post(endpoint: str, data: dict = None):
