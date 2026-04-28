@@ -8,3 +8,6 @@ skills-lock.json
 stocky/
 .streamlit/
 *.db
+branding_stocky.md
+marketing/
+descripcion_proyecto_stocky.md

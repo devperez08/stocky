@@ -22,7 +22,7 @@ router = APIRouter(
 @router.get("/", response_model=List[ProductResponse])
 def read_products(
     skip: int = Query(0, ge=0), 
-    limit: int = Query(50, le=200), 
+    limit: int = Query(200, le=500), 
     name: Optional[str] = None,
     category_id: Optional[int] = None,
     low_stock: bool = False,
