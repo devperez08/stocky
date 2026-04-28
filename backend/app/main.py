@@ -20,8 +20,28 @@ app.include_router(reports.router)
 
 # 🔥 Crear las tablas automáticamente al arrancar
 @app.on_event("startup")
-def create_tables():
+def startup_db():
+    # 1. Crear tablas si no existen
     Base.metadata.create_all(bind=engine)
+    
+    # 2. Migración manual para unit_price (PRO-71)
+    # Útil para sistemas legacy donde no hay Alembic configurado aún.
+    from sqlalchemy import text
+    with engine.connect() as conn:
+        try:
+            # Verificamos si la columna existe en SQLite
+            result = conn.execute(text("PRAGMA table_info(movements)"))
+            columns = [row[1] for row in result]
+            
+            if "unit_price" not in columns:
+                print("🔧 Migrando: Agregando columna 'unit_price' a la tabla 'movements'...")
+                conn.execute(text("ALTER TABLE movements ADD COLUMN unit_price FLOAT DEFAULT 0.0"))
+                conn.commit()
+                print("✅ Columna 'unit_price' añadida exitosamente.")
+            else:
+                print("✔️ La columna 'unit_price' ya existe en 'movements'.")
+        except Exception as e:
+            print(f"⚠️ Error en migración automática: {e}")
 
 # Agregamos el middleware de CORS (predeterminado).
 app.add_middleware(
