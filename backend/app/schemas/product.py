@@ -51,7 +51,7 @@ class CategoryBase(BaseModel):
 # Este es el esquema solicitado por PRO-64 para el listado
 class ProductResponse(ProductBase):
     id: int
-    created_at: datetime
+    created_at: Optional[datetime] = None
     updated_at: Optional[datetime] = None
     
     # Campo anidado: Esto permite que al consultar un producto, 

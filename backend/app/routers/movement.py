@@ -28,8 +28,8 @@ def get_movements(
     movement_type: Optional[MovementType] = Query(None, description="Filtrar por 'entry' o 'exit'"),
     date_from: Optional[datetime] = Query(None, description="Desde fecha"),
     date_to: Optional[datetime] = Query(None, description="Hasta fecha"),
-    skip: int = 0,
-    limit: int = 500,
+    skip: int = Query(0, ge=0),
+    limit: int = Query(500, le=1000),
     db: Session = Depends(get_db)
 ):
     """
@@ -49,8 +49,8 @@ def get_movements(
 @router.get("/product/{product_id}", response_model=List[MovementResponse])
 def get_product_movements(
     product_id: int, 
-    skip: int = 0, 
-    limit: int = 500, 
+    skip: int = Query(0, ge=0), 
+    limit: int = Query(500, le=1000), 
     db: Session = Depends(get_db)
 ):
     """Atajo para ver rápidamente los movimientos de un producto en particular."""

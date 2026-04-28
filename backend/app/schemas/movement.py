@@ -22,7 +22,7 @@ class MovementResponse(BaseModel):
     unit_price: float
     total_value: float = 0.0
     reason: Optional[str]
-    created_at: datetime
+    created_at: Optional[datetime] = None
 
     class Config:
         orm_mode = True

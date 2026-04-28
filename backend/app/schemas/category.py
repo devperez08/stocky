@@ -16,7 +16,7 @@ class CategoryCreate(CategoryBase):
 # 3. PARA RESPUESTA: Lo que la API devuelve (PRO-68)
 class CategoryResponse(CategoryBase):
     id: int
-    created_at: datetime
+    created_at: Optional[datetime] = None
 
     class Config:
         orm_mode = True
