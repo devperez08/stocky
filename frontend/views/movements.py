@@ -9,7 +9,8 @@ def render():
 
     # --- 1. CARGA DE DATOS ---
     # Obtenemos productos para el selector (necesitamos stock actual y nombre)
-    products_data = get("/products")
+    # Aumentamos el límite para asegurar que aparezcan todos en tiendas grandes
+    products_data = get("/products", params={"limit": 1000})
     products = products_data if isinstance(products_data, list) else []
     
     # Creamos un mapa: Nombre -> Datos completos de producto

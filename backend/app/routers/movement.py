@@ -29,7 +29,7 @@ def get_movements(
     date_from: Optional[datetime] = Query(None, description="Desde fecha"),
     date_to: Optional[datetime] = Query(None, description="Hasta fecha"),
     skip: int = 0,
-    limit: int = 100,
+    limit: int = 500,
     db: Session = Depends(get_db)
 ):
     """
@@ -50,7 +50,7 @@ def get_movements(
 def get_product_movements(
     product_id: int, 
     skip: int = 0, 
-    limit: int = 100, 
+    limit: int = 500, 
     db: Session = Depends(get_db)
 ):
     """Atajo para ver rápidamente los movimientos de un producto en particular."""

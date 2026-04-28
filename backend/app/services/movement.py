@@ -16,7 +16,7 @@ def create_movement(db: Session, movement_data: MovementCreate):
     product = db.query(Product).filter(
         Product.id == movement_data.product_id, 
         Product.is_active == True
-    ).with_for_update().first() # Usar with_for_update() asegura concurrencia a nivel BD
+    ).first() # Eliminamos with_for_update() para compatibilidad total con SQLite en Windows 7
 
     if not product:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Producto no encontrado")
@@ -39,6 +39,10 @@ def create_movement(db: Session, movement_data: MovementCreate):
             final_price = product.price
         else:
             final_price = product.cost_price
+    
+    # Asegurarnos de que el precio no sea None antes de guardar
+    if final_price is None:
+        final_price = 0.0
 
     new_movement = Movement(
         product_id=movement_data.product_id,
@@ -46,12 +50,10 @@ def create_movement(db: Session, movement_data: MovementCreate):
         unit_price=final_price,
         movement_type=movement_data.movement_type,
         reason=movement_data.reason
-        # asumiendo que store_id & user_id aún no son requeridos en esta iteración.
     )
 
     # 4. Comprometer la Transacción (Atómica)
     db.add(new_movement)
-    # Se ejecuta todo en bloque (Actualizar el Producto + Insertar el Movimiento). Si algo falla, se hace rollback automático
     db.commit()
     db.refresh(new_movement)
     
@@ -63,7 +65,7 @@ def create_movement(db: Session, movement_data: MovementCreate):
         "movement_type": new_movement.movement_type,
         "quantity": new_movement.quantity,
         "unit_price": float(new_movement.unit_price),
-        "total_value": float(new_movement.quantity * new_movement.unit_price),
+        "total_value": float(new_movement.quantity * (new_movement.unit_price or 0)),
         "reason": new_movement.reason,
         "created_at": new_movement.created_at
     }

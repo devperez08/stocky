@@ -33,6 +33,8 @@ def render():
         params["category_id"] = selected_cat_id
 
     # Oculamos los productos inactivos automáticamente ya que el backend de GET /products ya lo hace
+    if "limit" not in params:
+        params["limit"] = 1000
     products_data = get("/products", params=params)
     products = products_data if isinstance(products_data, list) else []
 
