@@ -32,43 +32,51 @@ def create_movement(db: Session, movement_data: MovementCreate):
     else:  # MovementType.ENTRY
         product.stock_quantity += movement_data.quantity
 
-    # 3. Preparar registro histórico
-    final_price = movement_data.unit_price
-    if final_price is None:
-        if movement_data.movement_type == MovementType.EXIT:
-            final_price = product.price
-        else:
-            final_price = product.cost_price
-    
-    # Asegurarnos de que el precio no sea None antes de guardar
-    if final_price is None:
-        final_price = 0.0
+    try:
+        # 3. Preparar registro histórico
+        final_price = movement_data.unit_price
+        if final_price is None:
+            if movement_data.movement_type == MovementType.EXIT:
+                final_price = product.price
+            else:
+                final_price = product.cost_price
+        
+        # Asegurarnos de que el precio no sea None antes de guardar
+        if final_price is None:
+            final_price = 0.0
 
-    new_movement = Movement(
-        product_id=movement_data.product_id,
-        quantity=movement_data.quantity,
-        unit_price=final_price,
-        movement_type=movement_data.movement_type,
-        reason=movement_data.reason
-    )
+        new_movement = Movement(
+            product_id=movement_data.product_id,
+            quantity=movement_data.quantity,
+            unit_price=final_price,
+            movement_type=movement_data.movement_type,
+            reason=movement_data.reason
+        )
 
-    # 4. Comprometer la Transacción (Atómica)
-    db.add(new_movement)
-    db.commit()
-    db.refresh(new_movement)
-    
-    # Pre-cargar el nombre para la respuesta
-    return {
-        "id": new_movement.id,
-        "product_id": new_movement.product_id,
-        "product_name": product.name,
-        "movement_type": new_movement.movement_type,
-        "quantity": new_movement.quantity,
-        "unit_price": float(new_movement.unit_price or 0),
-        "total_value": float(new_movement.quantity * (new_movement.unit_price or 0)),
-        "reason": new_movement.reason,
-        "created_at": new_movement.created_at
-    }
+        # 4. Comprometer la Transacción (Atómica)
+        db.add(new_movement)
+        db.commit()
+        db.refresh(new_movement)
+        
+        # Pre-cargar el nombre para la respuesta
+        return {
+            "id": new_movement.id,
+            "product_id": new_movement.product_id,
+            "product_name": product.name,
+            "movement_type": new_movement.movement_type,
+            "quantity": new_movement.quantity,
+            "unit_price": float(new_movement.unit_price or 0),
+            "total_value": float(new_movement.quantity) * float(new_movement.unit_price or 0),
+            "reason": new_movement.reason,
+            "created_at": new_movement.created_at
+        }
+    except Exception as e:
+        db.rollback()
+        print(f"Error detallado en create_movement: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error interno al registrar movimiento: {str(e)}"
+        )
 
 def get_movements(
     db: Session, 
