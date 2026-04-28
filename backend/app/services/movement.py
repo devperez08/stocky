@@ -64,7 +64,7 @@ def create_movement(db: Session, movement_data: MovementCreate):
         "product_name": product.name,
         "movement_type": new_movement.movement_type,
         "quantity": new_movement.quantity,
-        "unit_price": float(new_movement.unit_price),
+        "unit_price": float(new_movement.unit_price or 0),
         "total_value": float(new_movement.quantity * (new_movement.unit_price or 0)),
         "reason": new_movement.reason,
         "created_at": new_movement.created_at
@@ -103,8 +103,8 @@ def get_movements(
             "product_name": m.product.name if m.product else "Desconocido",
             "movement_type": m.movement_type,
             "quantity": m.quantity,
-            "unit_price": float(m.unit_price),
-            "total_value": float(m.quantity * m.unit_price),
+            "unit_price": float(m.unit_price or 0),
+            "total_value": float(m.quantity * (m.unit_price or 0)),
             "reason": m.reason,
             "created_at": m.created_at
         })
