@@ -14,7 +14,7 @@ def get_product_by_sku(db: Session, sku: str):
 def get_product_by_id(db: Session, product_id: int): # product_id es el id del producto que queremos consultar
     return db.query(Product).filter(Product.id == product_id).first()
 
-def get_products(db: Session, skip: int = 0, limit: int = 50, name: str = None, category_id: int = None, low_stock: bool = False):
+def get_products(db: Session, skip: int = 0, limit: int = 200, name: str = None, category_id: int = None, low_stock: bool = False):
     """
     Obtiene la lista de productos aplicando filtros dinámicos y paginación.
     """
