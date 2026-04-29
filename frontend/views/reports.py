@@ -102,7 +102,7 @@ def render():
         if date_from:
             params["date_from"] = date_from.isoformat()
         if date_to:
-            params["date_to"] = date_to.isoformat() + "T23:59:59"  # Incluir todo el día final
+            params["date_to"] = date_to.isoformat()
 
         with st.spinner("Cargando historial de movimientos..."):
             data = get("/reports/movements", params=params)

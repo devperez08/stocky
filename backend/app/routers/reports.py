@@ -1,6 +1,6 @@
 import io
 import pandas as pd
-from datetime import datetime
+from datetime import datetime, date
 from typing import Optional
 from fastapi import APIRouter, Depends, Query
 from fastapi.responses import StreamingResponse
@@ -91,8 +91,8 @@ def inventory_report(
 @router.get("/movements")
 def movements_report(
     format: str = Query("json", description="Formato de salida: 'json', 'csv' o 'excel'"),
-    date_from: Optional[datetime] = Query(None, description="Fecha de inicio (ISO 8601)"),
-    date_to: Optional[datetime] = Query(None, description="Fecha de fin (ISO 8601)"),
+    date_from: Optional[date] = Query(None, description="Fecha de inicio (YYYY-MM-DD)"),
+    date_to: Optional[date] = Query(None, description="Fecha de fin (YYYY-MM-DD)"),
     db: Session = Depends(get_db)
 ):
     """
@@ -104,9 +104,9 @@ def movements_report(
     query = db.query(Movement).options(joinedload(Movement.product))
 
     if date_from:
-        query = query.filter(Movement.created_at >= date_from)
+        query = query.filter(Movement.created_at >= datetime.combine(date_from, datetime.min.time()))
     if date_to:
-        query = query.filter(Movement.created_at <= date_to)
+        query = query.filter(Movement.created_at <= datetime.combine(date_to, datetime.max.time()))
 
     movements = query.order_by(Movement.created_at.desc()).all()
 
