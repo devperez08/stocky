@@ -94,15 +94,15 @@ def render():
         st.subheader("🗓️ Filtros del Reporte")
         col_d1, col_d2 = st.columns(2)
         with col_d1:
-            date_from = st.date_input("Desde (fecha inicio)")
+            date_from = st.date_input("Desde (fecha inicio)", value=None)
         with col_d2:
-            date_to = st.date_input("Hasta (fecha fin)")
+            date_to = st.date_input("Hasta (fecha fin)", value=None)
 
-        params = {
-            "format": "json",
-            "date_from": date_from.isoformat(),
-            "date_to": date_to.isoformat() + "T23:59:59"  # Incluir todo el día final
-        }
+        params = {"format": "json"}
+        if date_from:
+            params["date_from"] = date_from.isoformat()
+        if date_to:
+            params["date_to"] = date_to.isoformat() + "T23:59:59"  # Incluir todo el día final
 
         with st.spinner("Cargando historial de movimientos..."):
             data = get("/reports/movements", params=params)
