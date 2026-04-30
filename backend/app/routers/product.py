@@ -149,7 +149,22 @@ async def import_products_from_excel(
             if not sku or not name or price < 0:
                 raise ValueError("SKU, nombre o precio inválidos")
 
-            existing = db.query(Product).filter(Product.sku == sku).first()
+            from sqlalchemy import func
+            existing = db.query(Product).filter(func.lower(Product.sku) == sku.lower()).first()
+
+            category_id = None
+            if "category" in df.columns and pd.notna(row.get("category")):
+                cat_name = str(row["category"]).strip()
+                from backend.app.models.category import Category
+                category = db.query(Category).filter(func.lower(Category.name) == cat_name.lower()).first()
+                if category:
+                    category_id = category.id
+                else:
+                    new_cat = Category(name=cat_name)
+                    db.add(new_cat)
+                    db.commit()
+                    db.refresh(new_cat)
+                    category_id = new_cat.id
 
             if existing:
                 # Actualizar — NUNCA modifica stock_quantity
@@ -159,6 +174,8 @@ async def import_products_from_excel(
                     existing.description = str(row["description"])
                 if "min_stock_alert" in df.columns and pd.notna(row.get("min_stock_alert")):
                     existing.min_stock_alert = int(row["min_stock_alert"])
+                if category_id:
+                    existing.category_id = category_id
                 results["updated"] += 1
             else:
                 # Crear nuevo producto
@@ -167,6 +184,7 @@ async def import_products_from_excel(
                     stock_quantity=int(row.get("stock_quantity", 0)) if pd.notna(row.get("stock_quantity")) else 0,
                     min_stock_alert=int(row.get("min_stock_alert", 5)) if pd.notna(row.get("min_stock_alert")) else 5,
                     description=str(row["description"]) if "description" in df.columns and pd.notna(row.get("description")) else None,
+                    category_id=category_id
                 )
                 db.add(new_product)
                 results["created"] += 1

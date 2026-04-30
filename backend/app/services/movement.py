@@ -105,6 +105,7 @@ def get_movements(
             "unit_price": float(m.unit_price),
             "total_value": float(m.quantity * m.unit_price),
             "reason": m.reason,
-            "created_at": m.created_at
+            "created_at": m.created_at,
+            "is_voided": m.is_voided
         })
     return results

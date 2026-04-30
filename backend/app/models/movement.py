@@ -1,5 +1,5 @@
 import enum # Para definir las opciones permitidas
-from sqlalchemy import Column, Integer, String, Enum, DateTime, ForeignKey, func, Float, Index, CheckConstraint
+from sqlalchemy import Column, Integer, String, Enum, DateTime, ForeignKey, func, Float, Index, CheckConstraint, Boolean
 from sqlalchemy.orm import relationship
 from backend.app.core.database import Base
 
@@ -23,6 +23,11 @@ class Movement(Base):
     reason = Column(String(255), nullable=True)  # Motivo: "Compra a proveedor", "Venta a cliente"
     movement_type = Column(Enum(MovementType), nullable=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
+    
+    # --- ANULACIONES (PRO-96) ---
+    is_voided = Column(Boolean, default=False, nullable=False)
+    voided_at = Column(DateTime(timezone=True), nullable=True)
+    voided_by_movement_id = Column(Integer, ForeignKey("movements.id"), nullable=True)
 
     # --- RELACIONES ---
     # Multi-tenant

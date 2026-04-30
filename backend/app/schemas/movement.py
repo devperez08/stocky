@@ -29,6 +29,7 @@ class MovementResponse(BaseModel):
     total_value: float = 0.0
     reason: Optional[str]
     created_at: datetime
+    is_voided: bool = False
 
     class Config:
         from_attributes = True

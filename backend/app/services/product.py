@@ -8,8 +8,9 @@ from backend.app.schemas.product import ProductCreate # importamos el schema de 
 from backend.app.schemas.product import ProductUpdate # importamos el schema de actualizacion de producto
 
 def get_product_by_sku(db: Session, sku: str):
-    # Busca un producto por su SKU único. Lo usamos para validar duplicados
-    return db.query(Product).filter(Product.sku == sku).first()
+    from sqlalchemy import func
+    # Busca un producto por su SKU único. Usamos lower para case-insensitive.
+    return db.query(Product).filter(func.lower(Product.sku) == sku.lower()).first()
 
 def get_product_by_id(db: Session, product_id: int): # product_id es el id del producto que queremos consultar
     return db.query(Product).filter(Product.id == product_id).first()
@@ -21,9 +22,10 @@ def get_products(db: Session, skip: int = 0, limit: int = 200, name: str = None,
     # 1. Iniciamos la consulta filtrando solo los productos que no han sido borrados (soft-delete)
     query = db.query(Product).options(joinedload(Product.category)).filter(Product.is_active == True)
     
-    # 2. Búsqueda por nombre: Usamos 'ilike' para que no importe si es mayúscula o minúscula
+    # 2. Búsqueda por nombre: Usamos func.lower para que no importe si es mayúscula o minúscula
     if name:
-        query = query.filter(Product.name.ilike(f"%{name}%"))
+        from sqlalchemy import func
+        query = query.filter(func.lower(Product.name).like(f"%{name.lower()}%"))
         
     # 3. Filtrado por categoría: Solo si el frontend envía un ID válido
     if category_id:

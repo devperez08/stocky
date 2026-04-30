@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, Query, HTTPException
 from sqlalchemy.orm import Session
 from typing import List, Optional
 from datetime import datetime
@@ -60,3 +60,49 @@ def get_product_movements(
         skip=skip, 
         limit=limit
     )
+
+@router.delete("/{movement_id}", status_code=200)
+def void_movement(movement_id: int, db: Session = Depends(get_db)):
+    from backend.app.models.movement import Movement
+    from backend.app.models.product import Product
+    
+    movement = db.query(Movement).filter(
+        Movement.id == movement_id,
+        Movement.is_voided == False
+    ).first()
+    
+    if not movement:
+        raise HTTPException(status_code=404, detail="Movimiento no encontrado o ya fue anulado previamente")
+
+    product = db.query(Product).filter(Product.id == movement.product_id).first()
+
+    # Determinar el movimiento inverso
+    if movement.movement_type == MovementType.EXIT:
+        inverse_type = MovementType.ENTRY
+        product.stock_quantity += movement.quantity
+    else:
+        if product.stock_quantity < movement.quantity:
+            raise HTTPException(status_code=400,
+                detail=f"No se puede anular: el stock actual ({product.stock_quantity}) es menor que la cantidad a revertir ({movement.quantity})")
+        inverse_type = MovementType.EXIT
+        product.stock_quantity -= movement.quantity
+
+    inverse_movement = Movement(
+        product_id=movement.product_id,
+        movement_type=inverse_type,
+        quantity=movement.quantity,
+        unit_price=movement.unit_price,
+        reason=f"🔄 Anulación automática del movimiento #{movement_id}",
+    )
+    db.add(inverse_movement)
+
+    movement.is_voided = True
+    movement.voided_at = datetime.utcnow()
+
+    db.commit()
+    db.refresh(inverse_movement)
+    return {
+        "message": f"Movimiento #{movement_id} anulado exitosamente.",
+        "stock_revertido": movement.quantity,
+        "movimiento_inverso_id": inverse_movement.id
+    }

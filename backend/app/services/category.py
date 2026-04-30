@@ -15,7 +15,8 @@ def get_category_by_id(db: Session, category_id: int):
 
 def get_category_by_name(db: Session, name: str):
     """Busca una categoría por nombre para validar unicidad"""
-    return db.query(Category).filter(Category.name == name).first()
+    from sqlalchemy import func
+    return db.query(Category).filter(func.lower(Category.name) == name.lower()).first()
 
 def create_category(db: Session, category_data: CategoryCreate):
     """Crea una categoría verificando que el nombre sea único (PRO-68)"""

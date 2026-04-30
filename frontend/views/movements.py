@@ -147,10 +147,24 @@ def render():
             # Formatear valores monetarios
             df["Total ($)"] = df.apply(lambda row: f"-${row['total_value']:,.2f}" if row['movement_type'] == 'entry' else f"+${row['total_value']:,.2f}", axis=1)
             
-            # Seleccionar y renombrar columnas
-            view_df = df[["product_name", "Tipo", "quantity", "unit_price", "Total ($)", "reason", "Fecha"]].copy()
-            view_df.columns = ["Producto", "Tipo", "Cantidad", "Precio U.", "Total ($)", "Motivo", "Fecha"]
+            st.write("---")
+            from utils.api_client import delete
             
-            st.dataframe(view_df, hide_index=True, use_container_width=True)
+            # Mostrar botón "Anular" solo en movimientos no anulados
+            for _, row in df.iterrows():
+                col_data, col_action = st.columns([5, 1])
+                with col_data:
+                    style = "~~" if row.get("is_voided") else ""
+                    anulado_tag = " **[ANULADO]**" if row.get("is_voided") else ""
+                    st.markdown(f"{style}**{row['product_name']}** | {row['Tipo']} | {row['quantity']} uds | {row['Total ($)']} | {row['Fecha']}{style}{anulado_tag}")
+                    st.caption(f"Motivo: {row['reason']}")
+                with col_action:
+                    if not row.get("is_voided"):
+                        if st.button("🗑️ Anular", key=f"void_{row['id']}"):
+                            result = delete(f"/movements/{row['id']}")
+                            if result:
+                                st.success(result["message"])
+                                st.rerun()
+                st.divider()
         else:
             st.info("No se han registrado movimientos aún.")
