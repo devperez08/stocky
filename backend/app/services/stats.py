@@ -57,19 +57,18 @@ def get_dashboard_summary(db: Session) -> dict:
     # 6. Ingresos Totales por Ventas (Últimos 30 días)
     since_30d = datetime.utcnow() - timedelta(days=30)
     total_revenue_30d = db.query(
-        func.sum(Product.price * Movement.quantity)
-    ).join(Movement, Movement.product_id == Product.id).filter(
+        func.sum(Movement.unit_price * Movement.quantity)
+    ).filter(
         Movement.movement_type == MovementType.EXIT,
         Movement.created_at >= since_30d,
         Movement.is_voided == False
     ).scalar() or 0.0
 
-    # 7. Datos de ventas diarias para el gráfico (Últimos 15 días)
+    # 7. Datos de ventas/ganancias diarias para el gráfico (Últimos 15 días)
     since_15d = datetime.utcnow() - timedelta(days=15)
-    recent_sales = db.query(
-        Movement.created_at, Product.price, Movement.quantity
-    ).join(Product, Movement.product_id == Product.id).filter(
-        Movement.movement_type == MovementType.EXIT,
+    recent_movements = db.query(
+        Movement.created_at, Movement.unit_price, Movement.quantity, Movement.movement_type
+    ).filter(
         Movement.created_at >= since_15d,
         Movement.is_voided == False
     ).all()
@@ -80,11 +79,15 @@ def get_dashboard_summary(db: Session) -> dict:
         dt = (datetime.utcnow() - timedelta(days=i)).strftime("%Y-%m-%d")
         sales_by_date[dt] = 0.0
         
-    for m_date, p_price, m_qty in recent_sales:
+    for m_date, m_uprice, m_qty, m_type in recent_movements:
         if m_date:
             dt_str = m_date.strftime("%Y-%m-%d")
             if dt_str in sales_by_date:
-                sales_by_date[dt_str] += float(p_price * m_qty)
+                val = float(m_qty * m_uprice)
+                if m_type == MovementType.EXIT:
+                    sales_by_date[dt_str] += val
+                elif m_type == MovementType.ENTRY:
+                    sales_by_date[dt_str] -= val
                 
     sales_chart_data = [{"date": k, "revenue": round(v, 2)} for k, v in sales_by_date.items()]
 
