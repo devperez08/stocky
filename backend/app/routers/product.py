@@ -1,6 +1,8 @@
-from fastapi import APIRouter, Depends, HTTPException, status, Query
+from fastapi import APIRouter, Depends, HTTPException, status, Query, UploadFile, File
 from sqlalchemy.orm import Session
 from typing import List, Optional
+import pandas as pd
+import io
 
 # Importamos las herramientas que necesitamos:
 # 1. get_db: Para conectarnos a la base de datos
@@ -109,3 +111,68 @@ def delete_product(product_id: int, db: Session = Depends(get_db)):
         "message": f"Producto '{db_product.name}' desactivado exitosamente", 
         "id": product_id
     }
+
+# --- 6. ENDPOINT PARA IMPORTAR MASIVAMENTE (PRO-95) ---
+@router.post("/import", status_code=status.HTTP_200_OK)
+async def import_products_from_excel(
+    file: UploadFile = File(...),
+    db: Session = Depends(get_db)
+):
+    # Validar tipo de archivo
+    if not file.filename.endswith((".xlsx", ".xls")):
+        raise HTTPException(status_code=400, detail="Solo se aceptan archivos .xlsx o .xls")
+
+    content = await file.read()
+    try:
+        df = pd.read_excel(io.BytesIO(content))
+    except Exception:
+        raise HTTPException(status_code=400, detail="No se pudo leer el archivo. Verifica el formato.")
+
+    # Validar columnas requeridas
+    required_cols = {"sku", "name", "price"}
+    missing = required_cols - set(df.columns.str.lower())
+    if missing:
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=f"Columnas requeridas faltantes: {', '.join(missing)}")
+
+    df.columns = df.columns.str.lower().str.strip()
+    results = {"created": 0, "updated": 0, "skipped": 0, "errors": []}
+
+    from backend.app.models.product import Product
+
+    for idx, row in df.iterrows():
+        try:
+            sku = str(row["sku"]).strip()
+            name = str(row["name"]).strip()
+            price = float(row["price"])
+
+            if not sku or not name or price < 0:
+                raise ValueError("SKU, nombre o precio inválidos")
+
+            existing = db.query(Product).filter(Product.sku == sku).first()
+
+            if existing:
+                # Actualizar — NUNCA modifica stock_quantity
+                existing.name = name
+                existing.price = price
+                if "description" in df.columns and pd.notna(row.get("description")):
+                    existing.description = str(row["description"])
+                if "min_stock_alert" in df.columns and pd.notna(row.get("min_stock_alert")):
+                    existing.min_stock_alert = int(row["min_stock_alert"])
+                results["updated"] += 1
+            else:
+                # Crear nuevo producto
+                new_product = Product(
+                    sku=sku, name=name, price=price,
+                    stock_quantity=int(row.get("stock_quantity", 0)) if pd.notna(row.get("stock_quantity")) else 0,
+                    min_stock_alert=int(row.get("min_stock_alert", 5)) if pd.notna(row.get("min_stock_alert")) else 5,
+                    description=str(row["description"]) if "description" in df.columns and pd.notna(row.get("description")) else None,
+                )
+                db.add(new_product)
+                results["created"] += 1
+        except Exception as e:
+            results["skipped"] += 1
+            results["errors"].append({"row": int(idx) + 2, "error": str(e)})
+
+    db.commit()
+    return results

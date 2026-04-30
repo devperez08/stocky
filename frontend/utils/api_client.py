@@ -63,6 +63,17 @@ def delete(endpoint: str):
     except Exception as e:
         st.error(f"Error al eliminar en {endpoint}: {str(e)}")
         return None
+
+def post_file(endpoint: str, file):
+    """Para ENVIAR archivos (Upload)"""
+    try:
+        files = {"file": (file.name, file.getvalue(), file.type)}
+        response = httpx.post(f"{API_BASE_URL}{endpoint}", files=files, timeout=30, follow_redirects=True)
+        response.raise_for_status()
+        return response.json()
+    except Exception as e:
+        st.error(f"Error al subir archivo en {endpoint}: {str(e)}")
+        return None
 # NOTA TÉCNICA: Este módulo es un estándar en el desarrollo profesional (Capa de Servicio/Cliente).
 # Se utiliza para centralizar la comunicación entre el Frontend y el Backend, permitiendo 
 # realizar operaciones CRUD (Create, Read, Update, Delete) de forma segura y organizada.

@@ -1,7 +1,8 @@
 import streamlit as st
 import pandas as pd
 import uuid
-from utils.api_client import get, post, put, delete
+import io
+from utils.api_client import get, post, put, delete, post_file
 
 def render():
     st.title("📦 Gestión de Productos")
@@ -163,3 +164,31 @@ def render():
                     st.error("No se pudo desactivar el producto.")
         else:
             st.warning("No hay productos disponibles para desactivar.")
+
+    st.divider()
+
+    # --- 4. IMPORTAR DESDE EXCEL ---
+    with st.expander("📂 Importar Productos desde Excel"):
+        st.info("El archivo debe tener las columnas: **sku**, **name**, **price** (mínimo). "
+                "Los productos existentes (mismo SKU) se actualizarán. Los nuevos se crearán. "
+                "Ningún producto será eliminado.")
+
+        # Botón de descarga de plantilla
+        template_df = pd.DataFrame(columns=["sku", "name", "price", "description", "stock_quantity", "min_stock_alert", "category"])
+        template_bytes = io.BytesIO()
+        template_df.to_excel(template_bytes, index=False)
+        st.download_button("📥 Descargar Plantilla Excel", data=template_bytes.getvalue(),
+                           file_name="plantilla_importacion_stocky.xlsx")
+
+        uploaded_file = st.file_uploader("Selecciona el archivo Excel", type=["xlsx", "xls"])
+        if uploaded_file and st.button("🚀 Iniciar Importación"):
+            result = post_file("/products/import", file=uploaded_file)
+            if result:
+                import_col1, import_col2, import_col3 = st.columns(3)
+                import_col1.metric("✅ Creados", result.get("created", 0))
+                import_col2.metric("🔄 Actualizados", result.get("updated", 0))
+                import_col3.metric("⚠️ Omitidos", result.get("skipped", 0))
+                if result.get("errors"):
+                    st.warning("Filas con errores:")
+                    for err in result["errors"]:
+                        st.caption(f"Fila {err['row']}: {err['error']}")
