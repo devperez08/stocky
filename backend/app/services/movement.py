@@ -30,10 +30,11 @@ def create_movement(db: Session, movement_data: MovementCreate):
             )
         product.stock_quantity -= movement_data.quantity
     else:  # MovementType.ENTRY
+        product.price = movement_data.unit_value  # Actualiza precio con el último valor de entrada
         product.stock_quantity += movement_data.quantity
 
     # 3. Preparar registro histórico
-    final_price = movement_data.unit_price
+    final_price = movement_data.unit_value
     if final_price is None:
         if movement_data.movement_type == MovementType.EXIT:
             final_price = product.price

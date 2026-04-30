@@ -49,16 +49,13 @@ def render():
             quantity = st.number_input("Cantidad", min_value=1, step=1, value=1)
             
             # Lógica de precio automatizada
+            unit_value = None
             if mov_type == "entry":
-                default_cost = selected_product.get("cost_price", 0.0)
-                unit_price_val = st.number_input(
-                    "Costo Unitario de Compra ($)", 
-                    min_value=0.0, step=0.01, value=float(default_cost),
-                    help="Ingresa cuánto te costó cada unidad en esta compra."
+                unit_value = st.number_input(
+                    "💲 Valor Unitario *",
+                    min_value=0.01, step=0.01, format="%.2f",
+                    help="Precio de compra por unidad. Campo obligatorio para entradas."
                 )
-            else:
-                unit_price_val = float(selected_product.get("price", 0.0))
-                st.info(f"💰 Precio de venta: **${unit_price_val:,.2f}** (Valor del catálogo)")
             
             reason = st.text_input("Razón / Motivo", placeholder="Ej: Venta #101, Reabastecimiento...")
 
@@ -70,14 +67,17 @@ def render():
 
             if submitted:
                 # El backend ya valida, pero mejor validar también aquí para feedback rápido
-                if mov_type == "exit" and quantity > current_stock:
+                if mov_type == "entry" and (unit_value is None or unit_value <= 0):
+                    st.error("⚠️ El Valor Unitario es obligatorio y debe ser mayor a cero para registrar una entrada.")
+                    st.stop()
+                elif mov_type == "exit" and quantity > current_stock:
                     st.error("No se puede registrar una salida superior al stock disponible.")
                 else:
                     payload = {
                         "product_id": selected_product["id"],
                         "movement_type": mov_type,
                         "quantity": quantity,
-                        "unit_price": unit_price_val,
+                        "unit_value": unit_value,
                         "reason": reason if reason else "Sin motivo especificado"
                     }
                     result = post("/movements", payload)
