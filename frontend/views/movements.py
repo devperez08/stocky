@@ -74,6 +74,7 @@ def render():
                 unit_value = st.number_input(
                     "💲 Valor Unitario *",
                     min_value=0.01, step=0.01, format="%.2f",
+                    value=None, placeholder="Ej: 15.50",
                     help="Precio de compra por unidad. Campo obligatorio para entradas."
                 )
             

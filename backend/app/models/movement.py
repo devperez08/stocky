@@ -1,5 +1,5 @@
 import enum # Para definir las opciones permitidas
-from sqlalchemy import Column, Integer, String, Enum, DateTime, ForeignKey, func, Float
+from sqlalchemy import Column, Integer, String, Enum, DateTime, ForeignKey, func, Float, Index, CheckConstraint
 from sqlalchemy.orm import relationship
 from backend.app.core.database import Base
 
@@ -10,6 +10,12 @@ class MovementType(str, enum.Enum):
 
 class Movement(Base):
     __tablename__ = "movements"
+    __table_args__ = (
+        Index("ix_movements_product_id", "product_id"),
+        Index("ix_movements_created_at", "created_at"),
+        Index("ix_movements_type", "movement_type"),
+        CheckConstraint("quantity > 0", name="ck_movements_quantity_positive"),
+    )
 
     id = Column(Integer, primary_key=True, index=True)
     quantity = Column(Integer, nullable=False)

@@ -1,9 +1,14 @@
-from sqlalchemy import Column, Integer, String, Float, Boolean, DateTime, ForeignKey, func
+from sqlalchemy import Column, Integer, String, Float, Boolean, DateTime, ForeignKey, func, Index, CheckConstraint
 from sqlalchemy.orm import relationship
 from backend.app.core.database import Base
 
 class Product(Base):
     __tablename__ = "products"
+    __table_args__ = (
+        Index("ix_products_name", "name"),
+        Index("ix_products_category", "category_id"),
+        CheckConstraint("stock_quantity >= 0", name="ck_products_stock_non_negative"),
+    )
 
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String(200), nullable=False, index=True)

@@ -1,7 +1,7 @@
 # service se encarga de hablar con la base de datos, permite hacer las operaciones CRUD
 
 from fastapi import HTTPException, status
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 from backend.app.models.product import Product # importamos el modelo de la tabla de productos
 from backend.app.models.category import Category # importamos el modelo de categorias para validarla
 from backend.app.schemas.product import ProductCreate # importamos el schema de creacion de producto
@@ -19,7 +19,7 @@ def get_products(db: Session, skip: int = 0, limit: int = 200, name: str = None,
     Obtiene la lista de productos aplicando filtros dinámicos y paginación.
     """
     # 1. Iniciamos la consulta filtrando solo los productos que no han sido borrados (soft-delete)
-    query = db.query(Product).filter(Product.is_active == True)
+    query = db.query(Product).options(joinedload(Product.category)).filter(Product.is_active == True)
     
     # 2. Búsqueda por nombre: Usamos 'ilike' para que no importe si es mayúscula o minúscula
     if name:
