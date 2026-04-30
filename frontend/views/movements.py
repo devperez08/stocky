@@ -38,11 +38,31 @@ def render():
             delta_color="inverse"
         )
 
-        mov_type = st.radio(
-            "Tipo de Operación", 
-            options=["entry", "exit"],
-            format_func=lambda x: "📥 Entrada (Compra de Mercancía)" if x == "entry" else "📤 Salida (Venta/Baja)"
-        )
+        # Inicializar estado
+        if "mov_type" not in st.session_state:
+            st.session_state.mov_type = "entry"
+
+        # Selector visual con dos columnas (botones grandes)
+        st.write("**Tipo de Movimiento:**")
+        col_entry, col_exit = st.columns(2)
+        with col_entry:
+            if st.button("📥 ENTRADA", use_container_width=True,
+                         type="primary" if st.session_state.mov_type == "entry" else "secondary"):
+                st.session_state.mov_type = "entry"
+                st.rerun()
+        with col_exit:
+            if st.button("📤 SALIDA", use_container_width=True,
+                         type="primary" if st.session_state.mov_type == "exit" else "secondary"):
+                st.session_state.mov_type = "exit"
+                st.rerun()
+
+        mov_type = st.session_state.mov_type
+
+        # Banner contextual según el tipo activo
+        if mov_type == "entry":
+            st.success("🟢 **MODO ACTIVO: ENTRADA DE STOCK** — Se incrementará el inventario del producto seleccionado.")
+        else:
+            st.error("🔴 **MODO ACTIVO: SALIDA DE STOCK** — Se descontará del inventario del producto seleccionado.")
 
         with st.form("movement_submission"):
             # Cantidad y Razón
@@ -63,7 +83,16 @@ def render():
             if mov_type == "exit" and quantity > current_stock:
                 st.error(f"⚠️ ¡Atención! No tienes suficiente stock. Faltan {quantity - current_stock} unidades.")
             
-            submitted = st.form_submit_button("✅ Confirmar y Registrar", type="primary")
+            # Resumen de la operación a realizar
+            st.divider()
+            action_verb = "Ingresarán" if mov_type == "entry" else "Saldrán"
+            st.caption(f"📋 **Resumen:** {action_verb} **{quantity} unidades** de **{selected_name}**. "
+                       f"Stock actual: {current_stock} → Nuevo stock estimado: "
+                       f"{current_stock + quantity if mov_type == 'entry' else current_stock - quantity}")
+
+            # Botón de confirmación con texto dinámico
+            confirm_label = "✅ Confirmar Entrada de Stock" if mov_type == "entry" else "⚠️ Confirmar Salida de Stock"
+            submitted = st.form_submit_button(confirm_label, type="primary", use_container_width=True)
 
             if submitted:
                 # El backend ya valida, pero mejor validar también aquí para feedback rápido
