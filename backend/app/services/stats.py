@@ -45,7 +45,10 @@ def get_dashboard_summary(db: Session) -> dict:
     movements_24h = db.query(
         Movement.movement_type,
         func.count(Movement.id).label("count")
-    ).filter(Movement.created_at >= since).group_by(Movement.movement_type).all()
+    ).filter(
+        Movement.created_at >= since,
+        Movement.is_voided == False
+    ).group_by(Movement.movement_type).all()
 
     # Convertimos la lista de tuplas a un diccionario amigable { "entry": 5, "exit": 12 }
     movements_dict = {str(m.movement_type.value): m.count for m in movements_24h}
@@ -57,7 +60,8 @@ def get_dashboard_summary(db: Session) -> dict:
         func.sum(Product.price * Movement.quantity)
     ).join(Movement, Movement.product_id == Product.id).filter(
         Movement.movement_type == MovementType.EXIT,
-        Movement.created_at >= since_30d
+        Movement.created_at >= since_30d,
+        Movement.is_voided == False
     ).scalar() or 0.0
 
     # 7. Datos de ventas diarias para el gráfico (Últimos 15 días)
@@ -66,7 +70,8 @@ def get_dashboard_summary(db: Session) -> dict:
         Movement.created_at, Product.price, Movement.quantity
     ).join(Product, Movement.product_id == Product.id).filter(
         Movement.movement_type == MovementType.EXIT,
-        Movement.created_at >= since_15d
+        Movement.created_at >= since_15d,
+        Movement.is_voided == False
     ).all()
 
     sales_by_date = {}
