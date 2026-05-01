@@ -84,12 +84,20 @@ def render():
             if mov_type == "exit" and quantity > current_stock:
                 st.error(f"⚠️ ¡Atención! No tienes suficiente stock. Faltan {quantity - current_stock} unidades.")
             
+            if mov_type == "exit":
+                product_price = selected_product.get("price", 0.0)
+                st.info(f"💵 **Precio de Venta (Unidad):** ${product_price:,.2f}")
+
             # Resumen de la operación a realizar
             st.divider()
             action_verb = "Ingresarán" if mov_type == "entry" else "Saldrán"
             st.caption(f"📋 **Resumen:** {action_verb} **{quantity} unidades** de **{selected_name}**. "
                        f"Stock actual: {current_stock} → Nuevo stock estimado: "
                        f"{current_stock + quantity if mov_type == 'entry' else current_stock - quantity}")
+            
+            if mov_type == "exit":
+                total_sale = quantity * product_price
+                st.caption(f"💰 **Total Venta Estimada:** ${total_sale:,.2f}")
 
             # Botón de confirmación con texto dinámico
             confirm_label = "✅ Confirmar Entrada de Stock" if mov_type == "entry" else "⚠️ Confirmar Salida de Stock"
@@ -151,20 +159,21 @@ def render():
             from utils.api_client import delete
             
             # Mostrar botón "Anular" solo en movimientos no anulados
-            for _, row in df.iterrows():
-                col_data, col_action = st.columns([5, 1])
-                with col_data:
-                    style = "~~" if row.get("is_voided") else ""
-                    anulado_tag = " **[ANULADO]**" if row.get("is_voided") else ""
-                    st.markdown(f"{style}**{row['product_name']}** | {row['Tipo']} | {row['quantity']} uds | {row['Total ($)']} | {row['Fecha']}{style}{anulado_tag}")
-                    st.caption(f"Motivo: {row['reason']}")
-                with col_action:
-                    if not row.get("is_voided"):
-                        if st.button("🗑️ Anular", key=f"void_{row['id']}"):
-                            result = delete(f"/movements/{row['id']}")
-                            if result:
-                                st.success(result["message"])
-                                st.rerun()
-                st.divider()
+            with st.container(height=500):
+                for _, row in df.iterrows():
+                    col_data, col_action = st.columns([5, 1])
+                    with col_data:
+                        style = "~~" if row.get("is_voided") else ""
+                        anulado_tag = " **[ANULADO]**" if row.get("is_voided") else ""
+                        st.markdown(f"{style}**{row['product_name']}** | {row['Tipo']} | {row['quantity']} uds | {row['Total ($)']} | {row['Fecha']}{style}{anulado_tag}")
+                        st.caption(f"Motivo: {row['reason']}")
+                    with col_action:
+                        if not row.get("is_voided"):
+                            if st.button("🗑️ Anular", key=f"void_{row['id']}"):
+                                result = delete(f"/movements/{row['id']}")
+                                if result:
+                                    st.success(result["message"])
+                                    st.rerun()
+                    st.divider()
         else:
             st.info("No se han registrado movimientos aún.")

@@ -1,5 +1,7 @@
 source venv/bin/activate #Activar el entorno virtual
 uvicorn backend.app.main:app --reload #Activar el servidor de la api
+
+source venv/bin/activate #Activar el entorno virtual
 streamlit run frontend/app.py #Activar la interfaz de usuario
 
 
