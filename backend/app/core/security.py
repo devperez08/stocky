@@ -1,5 +1,5 @@
 from datetime import datetime, timedelta, timezone
-from typing import Optional, Union
+from typing import Optional
 from jose import JWTError, jwt
 from passlib.context import CryptContext
 from fastapi import Depends, HTTPException, status
@@ -9,16 +9,20 @@ from backend.app.core.config import settings
 # Contexto para el hash de contraseñas
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
-# Definimos de dónde sacar el token (el endpoint de login será /auth/login)
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/login")
+# Endpoint OAuth2 de referencia para Swagger y clientes compatibles.
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/token")
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
     """Verifica si una contraseña en texto plano coincide con su hash."""
     return pwd_context.verify(plain_password, hashed_password)
 
-def get_password_hash(password: str) -> str:
+def hash_password(password: str) -> str:
     """Genera un hash seguro para una contraseña."""
     return pwd_context.hash(password)
+
+def get_password_hash(password: str) -> str:
+    """Compatibilidad retroactiva para código existente."""
+    return hash_password(password)
 
 def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -> str:
     """Crea un token JWT firmado."""
@@ -44,9 +48,11 @@ def get_current_store_id(token: str = Depends(oauth2_scheme)) -> int:
     )
     try:
         payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
-        store_id_str: str = payload.get("sub")
-        if store_id_str is None:
+        store_id = payload.get("store_id")
+        if store_id is None:
+            store_id = payload.get("sub")
+        if store_id is None:
             raise credentials_exception
-        return int(store_id_str)
+        return int(store_id)
     except (JWTError, ValueError):
         raise credentials_exception

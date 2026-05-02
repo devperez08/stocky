@@ -1,8 +1,6 @@
-#capa intermedia entre el frontend y el backend
-
 import os
-import httpx # Importamos httpx para hacer peticiones al backend
-import streamlit as st # Importamos streamlit para usar st.secrets
+import httpx
+import streamlit as st
 
 # Prioridad: Variable de Entorno (Docker) > secrets.toml (Local) > Localhost default
 try:
@@ -15,65 +13,82 @@ def get_api_base_url():
 
 API_BASE_URL = get_api_base_url()
 
-#funcion para obtener datos del backend (estandar)
-def get(endpoint: str, params: dict = None):
+def _build_headers() -> dict:
+    headers = {"Accept": "application/json"}
+    token = st.session_state.get("token")
+    if token:
+        headers["Authorization"] = f"Bearer {token}"
+    return headers
+
+
+def _clear_auth_session() -> None:
+    for key in ("token", "store_name", "days_remaining", "plan_status"):
+        st.session_state.pop(key, None)
+
+
+def _handle_http_error(error: httpx.HTTPStatusError, endpoint: str, show_error: bool) -> None:
+    status_code = error.response.status_code
+    if status_code == 401:
+        _clear_auth_session()
+        if show_error:
+            st.warning("Tu sesion expiro o es invalida. Inicia sesion nuevamente.")
+        st.rerun()
+    if show_error:
+        st.error(f"Error {status_code} en {endpoint}: {error.response.text}")
+
+
+def _request(method: str, endpoint: str, timeout: int = 10, show_error: bool = True, **kwargs):
     try:
-        response = httpx.get(f"{API_BASE_URL}{endpoint}", params=params, timeout=10, follow_redirects=True)
+        response = httpx.request(
+            method=method,
+            url=f"{API_BASE_URL}{endpoint}",
+            timeout=timeout,
+            follow_redirects=True,
+            headers={**_build_headers(), **kwargs.pop("headers", {})},
+            **kwargs,
+        )
         response.raise_for_status()
-        return response.json()
+        return response.json() if response.content else {}
     except (httpx.ConnectError, httpx.ConnectTimeout):
-        st.error("No se puede conectar con el servidor. ¿Está el backend corriendo?")
-        return None
+        if show_error:
+            st.error("No se puede conectar con el servidor. ¿Esta el backend corriendo?")
     except httpx.ReadTimeout:
-        st.error("El servidor tardó demasiado en responder (Timeout).")
-        return None
-    except httpx.HTTPStatusError as e:
-        st.error(f"Error del servidor: {e.response.status_code}")
-        return None
-    except Exception as e:
-        st.error(f"Error inesperado: {str(e)}")
-        return None
+        if show_error:
+            st.error("El servidor tardo demasiado en responder (timeout).")
+    except httpx.HTTPStatusError as error:
+        _handle_http_error(error, endpoint, show_error)
+    except Exception as error:
+        if show_error:
+            st.error(f"Error inesperado en {endpoint}: {error}")
+    return None
 
-def post(endpoint: str, data: dict = None):
-    """Para ENVIAR datos nuevos (Crear)"""
-    try:
-        response = httpx.post(f"{API_BASE_URL}{endpoint}", json=data, timeout=10, follow_redirects=True)
-        response.raise_for_status()
-        return response.json()
-    except Exception as e:
-        st.error(f"Error al crear en {endpoint}: {str(e)}")
-        return None
 
-def put(endpoint: str, data: dict = None):
-    """Para ACTUALIZAR datos existentes (Editar)"""
-    try:
-        response = httpx.put(f"{API_BASE_URL}{endpoint}", json=data, timeout=10, follow_redirects=True)
-        response.raise_for_status()
-        return response.json()
-    except Exception as e:
-        st.error(f"Error al actualizar en {endpoint}: {str(e)}")
-        return None
+def get(endpoint: str, params: dict = None, show_error: bool = True):
+    return _request("GET", endpoint, params=params, show_error=show_error)
 
-def delete(endpoint: str):
-    """Para BORRAR datos"""
-    try:
-        response = httpx.delete(f"{API_BASE_URL}{endpoint}", timeout=10, follow_redirects=True)
-        response.raise_for_status()
-        return response.json()
-    except Exception as e:
-        st.error(f"Error al eliminar en {endpoint}: {str(e)}")
-        return None
 
-def post_file(endpoint: str, file):
-    """Para ENVIAR archivos (Upload)"""
-    try:
-        files = {"file": (file.name, file.getvalue(), file.type)}
-        response = httpx.post(f"{API_BASE_URL}{endpoint}", files=files, timeout=30, follow_redirects=True)
-        response.raise_for_status()
-        return response.json()
-    except Exception as e:
-        st.error(f"Error al subir archivo en {endpoint}: {str(e)}")
-        return None
-# NOTA TÉCNICA: Este módulo es un estándar en el desarrollo profesional (Capa de Servicio/Cliente).
-# Se utiliza para centralizar la comunicación entre el Frontend y el Backend, permitiendo 
-# realizar operaciones CRUD (Create, Read, Update, Delete) de forma segura y organizada.
+def post(endpoint: str, data: dict = None, show_error: bool = True):
+    return _request("POST", endpoint, json=data, show_error=show_error)
+
+
+def post_form(endpoint: str, data: dict = None, show_error: bool = True):
+    return _request(
+        "POST",
+        endpoint,
+        data=data,
+        headers={"Content-Type": "application/x-www-form-urlencoded"},
+        show_error=show_error,
+    )
+
+
+def put(endpoint: str, data: dict = None, show_error: bool = True):
+    return _request("PUT", endpoint, json=data, show_error=show_error)
+
+
+def delete(endpoint: str, show_error: bool = True):
+    return _request("DELETE", endpoint, show_error=show_error)
+
+
+def post_file(endpoint: str, file, show_error: bool = True):
+    files = {"file": (file.name, file.getvalue(), file.type)}
+    return _request("POST", endpoint, files=files, timeout=30, show_error=show_error)
