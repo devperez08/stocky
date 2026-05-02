@@ -1,82 +1,81 @@
 from sqlalchemy.orm import Session
 from sqlalchemy import func
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from backend.app.models.product import Product
 from backend.app.models.movement import Movement
-from backend.app.schemas.stats import StatsSummary, LowStockProduct, MovementsLast24h
 
-def get_dashboard_summary(db: Session) -> dict:
+def get_dashboard_summary(db: Session, store_id: int) -> dict:
     """
-    Calcula y agrega todos los KPIs centrales del inventario en una única consulta transaccional.
-    Esto evita hacer múltiples round-trips a la base de datos desde el frontend.
+    Calcula KPIs del Dashboard filtrados estrictamente por tienda.
     """
-    # 1. Valor total del inventario (Precio * Cantidad)
-    # COALESCE / or 0.0 evita retornar None si no hay inventario
+    # 1. Valor total del inventario propio
     total_value = db.query(
         func.sum(Product.price * Product.stock_quantity)
-    ).filter(Product.is_active == True).scalar() or 0.0
+    ).filter(Product.is_active == True, Product.store_id == store_id).scalar() or 0.0
 
-    # 2. Conteo total de productos activos en catálogo
+    # 2. Conteo total de productos activos en la tienda
     total_products = db.query(func.count(Product.id)).filter(
-        Product.is_active == True
+        Product.is_active == True,
+        Product.store_id == store_id
     ).scalar() or 0
 
-    # 3. Alertas de inventario crítico
+    # 3. Alertas de inventario crítico de la tienda
     critical_stock_count = db.query(func.count(Product.id)).filter(
         Product.is_active == True,
+        Product.store_id == store_id,
         Product.stock_quantity <= Product.min_stock_alert
     ).scalar() or 0
 
-    # 4. Top 5 productos críticos reales (ordenados por el de menor stock)
+    # 4. Top 5 productos críticos
     low_stock_products_db = db.query(Product).filter(
         Product.is_active == True,
+        Product.store_id == store_id,
         Product.stock_quantity <= Product.min_stock_alert
     ).order_by(Product.stock_quantity.asc()).limit(5).all()
 
-    # Formateo manual para calzar con el schema LowStockProduct
     low_stock_products = [
         {"id": p.id, "name": p.name, "stock": p.stock_quantity, "alert": p.min_stock_alert}
         for p in low_stock_products_db
     ]
 
-    # 5. Actividad reciente: Movimientos agrupalos por tipo en las últimas 24H
-    since = datetime.utcnow() - timedelta(hours=24)
-    # Genera una lista de tuplas [(MovementType.ENTRY, 5), (MovementType.EXIT, 12)]
+    # 5. Actividad reciente (24h) de la tienda
+    since = datetime.now(timezone.utc) - timedelta(hours=24)
     movements_24h = db.query(
         Movement.movement_type,
         func.count(Movement.id).label("count")
     ).filter(
         Movement.created_at >= since,
+        Movement.store_id == store_id,
         Movement.is_voided == False
     ).group_by(Movement.movement_type).all()
 
-    # Convertimos la lista de tuplas a un diccionario amigable { "entry": 5, "exit": 12 }
     movements_dict = {str(m.movement_type.value): m.count for m in movements_24h}
 
     from backend.app.models.movement import MovementType
-    # 6. Ingresos Totales por Ventas (Últimos 30 días)
-    since_30d = datetime.utcnow() - timedelta(days=30)
+    # 6. Ingresos Totales por Ventas (30 días)
+    since_30d = datetime.now(timezone.utc) - timedelta(days=30)
     total_revenue_30d = db.query(
         func.sum(Movement.unit_price * Movement.quantity)
     ).filter(
         Movement.movement_type == MovementType.EXIT,
+        Movement.store_id == store_id,
         Movement.created_at >= since_30d,
         Movement.is_voided == False
     ).scalar() or 0.0
 
-    # 7. Datos de ventas/ganancias diarias para el gráfico (Últimos 15 días)
-    since_15d = datetime.utcnow() - timedelta(days=15)
+    # 7. Datos de ventas para gráfico (15 días)
+    since_15d = datetime.now(timezone.utc) - timedelta(days=15)
     recent_movements = db.query(
         Movement.created_at, Movement.unit_price, Movement.quantity, Movement.movement_type
     ).filter(
         Movement.created_at >= since_15d,
+        Movement.store_id == store_id,
         Movement.is_voided == False
     ).all()
 
     sales_by_date = {}
-    # Llenar ceros para los últimos 15 días para la gráfica
     for i in range(15, -1, -1):
-        dt = (datetime.utcnow() - timedelta(days=i)).strftime("%Y-%m-%d")
+        dt = (datetime.now(timezone.utc) - timedelta(days=i)).strftime("%Y-%m-%d")
         sales_by_date[dt] = 0.0
         
     for m_date, m_uprice, m_qty, m_type in recent_movements:
@@ -86,12 +85,9 @@ def get_dashboard_summary(db: Session) -> dict:
                 val = float(m_qty * m_uprice)
                 if m_type == MovementType.EXIT:
                     sales_by_date[dt_str] += val
-                elif m_type == MovementType.ENTRY:
-                    sales_by_date[dt_str] -= val
                 
     sales_chart_data = [{"date": k, "revenue": round(v, 2)} for k, v in sales_by_date.items()]
 
-    # Empaquetamos todo
     return {
         "total_inventory_value": round(float(total_value), 2),
         "total_sales_revenue_30d": round(float(total_revenue_30d), 2),

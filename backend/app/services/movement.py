@@ -6,57 +6,49 @@ from backend.app.models.movement import Movement, MovementType
 from backend.app.models.product import Product
 from backend.app.schemas.movement import MovementCreate
 
-def create_movement(db: Session, movement_data: MovementCreate):
+def create_movement(db: Session, movement_data: MovementCreate, store_id: int):
     """
-    Crea un registro de movimiento y actualiza atómicamente el stock del producto.
-    Lanza HTTPException(404) si el producto no existe o está inactivo.
-    Lanza HTTPException(400) si es una SALIDA y no hay suficiente stock.
+    Crea un registro de movimiento y actualiza atómicamente el stock del producto de la tienda.
     """
-    # 1. Bloquear y asegurar que el producto existe/está activo.
+    # 1. Asegurar que el producto pertenece a la tienda y está activo.
     product = db.query(Product).filter(
         Product.id == movement_data.product_id, 
+        Product.store_id == store_id,
         Product.is_active == True
-    ).with_for_update().first() # Usar with_for_update() asegura concurrencia a nivel BD
+    ).with_for_update().first()
 
     if not product:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Producto no encontrado")
 
-    # 2. Lógica de negocio (entradas suman, salidas restan) y validación (PRO-70)
+    # 2. Lógica de negocio
     if movement_data.movement_type == MovementType.EXIT:
         if product.stock_quantity < movement_data.quantity:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"Stock insuficiente. Disponible: {product.stock_quantity}, solicitado: {movement_data.quantity}"
+                detail=f"Stock insuficiente. Disponible: {product.stock_quantity}"
             )
         product.stock_quantity -= movement_data.quantity
-    else:  # MovementType.ENTRY
-        product.price = movement_data.unit_value  # Actualiza precio con el último valor de entrada
+    else:  # ENTRY
+        if movement_data.unit_value:
+            product.price = movement_data.unit_value
         product.stock_quantity += movement_data.quantity
 
     # 3. Preparar registro histórico
-    final_price = movement_data.unit_value
-    if final_price is None:
-        if movement_data.movement_type == MovementType.EXIT:
-            final_price = product.price
-        else:
-            final_price = product.cost_price
+    final_price = movement_data.unit_value or product.price
 
     new_movement = Movement(
         product_id=movement_data.product_id,
+        store_id=store_id, # Inyectado
         quantity=movement_data.quantity,
         unit_price=final_price,
         movement_type=movement_data.movement_type,
         reason=movement_data.reason
-        # asumiendo que store_id & user_id aún no son requeridos en esta iteración.
     )
 
-    # 4. Comprometer la Transacción (Atómica)
     db.add(new_movement)
-    # Se ejecuta todo en bloque (Actualizar el Producto + Insertar el Movimiento). Si algo falla, se hace rollback automático
     db.commit()
     db.refresh(new_movement)
     
-    # Pre-cargar el nombre para la respuesta
     return {
         "id": new_movement.id,
         "product_id": new_movement.product_id,
@@ -66,11 +58,13 @@ def create_movement(db: Session, movement_data: MovementCreate):
         "unit_price": float(new_movement.unit_price),
         "total_value": float(new_movement.quantity * new_movement.unit_price),
         "reason": new_movement.reason,
-        "created_at": new_movement.created_at
+        "created_at": new_movement.created_at,
+        "is_voided": new_movement.is_voided
     }
 
 def get_movements(
     db: Session, 
+    store_id: int,
     product_id: Optional[int] = None, 
     movement_type: Optional[MovementType] = None, 
     date_from: Optional[datetime] = None, 
@@ -78,9 +72,10 @@ def get_movements(
     skip: int = 0,
     limit: int = 100
 ):
-    """Obtiene los movimientos del inventario filtrados dinámicamente y con la relación 'product' cargada."""
-    # Usamos joinedload para evitar consultas N+1 y optimizar el aplanamiento del nombre del producto
-    query = db.query(Movement).options(joinedload(Movement.product))
+    """Obtiene los movimientos de la tienda."""
+    query = db.query(Movement).options(joinedload(Movement.product)).filter(
+        Movement.store_id == store_id
+    )
     
     if product_id:
         query = query.filter(Movement.product_id == product_id)
@@ -93,10 +88,8 @@ def get_movements(
         
     movements = query.order_by(Movement.created_at.desc()).offset(skip).limit(limit).all()
     
-    # Adaptar para cumplir MovementResponse
-    results = []
-    for m in movements:
-        results.append({
+    return [
+        {
             "id": m.id,
             "product_id": m.product_id,
             "product_name": m.product.name if m.product else "Desconocido",
@@ -107,5 +100,6 @@ def get_movements(
             "reason": m.reason,
             "created_at": m.created_at,
             "is_voided": m.is_voided
-        })
-    return results
+        }
+        for m in movements
+    ]

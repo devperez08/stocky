@@ -1,5 +1,4 @@
 # service se encarga de hablar con la base de datos, permite hacer las operaciones CRUD
-
 from fastapi import HTTPException, status
 from sqlalchemy.orm import Session, joinedload
 from backend.app.models.product import Product # importamos el modelo de la tabla de productos
@@ -7,123 +6,113 @@ from backend.app.models.category import Category # importamos el modelo de categ
 from backend.app.schemas.product import ProductCreate # importamos el schema de creacion de producto
 from backend.app.schemas.product import ProductUpdate # importamos el schema de actualizacion de producto
 
-def get_product_by_sku(db: Session, sku: str):
+def get_product_by_sku(db: Session, sku: str, store_id: int):
     from sqlalchemy import func
-    # Busca un producto por su SKU único. Usamos lower para case-insensitive.
-    return db.query(Product).filter(func.lower(Product.sku) == sku.lower()).first()
+    # Busca un producto por su SKU único dentro de la tienda.
+    return db.query(Product).filter(
+        func.lower(Product.sku) == sku.lower(),
+        Product.store_id == store_id
+    ).first()
 
-def get_product_by_id(db: Session, product_id: int): # product_id es el id del producto que queremos consultar
-    return db.query(Product).filter(Product.id == product_id).first()
+def get_product_by_id(db: Session, product_id: int, store_id: int):
+    return db.query(Product).filter(
+        Product.id == product_id, 
+        Product.store_id == store_id
+    ).first()
 
-def get_products(db: Session, skip: int = 0, limit: int = 200, name: str = None, category_id: int = None, low_stock: bool = False):
+def get_products(db: Session, store_id: int, skip: int = 0, limit: int = 200, name: str = None, category_id: int = None, low_stock: bool = False):
     """
-    Obtiene la lista de productos aplicando filtros dinámicos y paginación.
+    Obtiene la lista de productos de la tienda aplicando filtros dinámicos.
     """
-    # 1. Iniciamos la consulta filtrando solo los productos que no han sido borrados (soft-delete)
-    query = db.query(Product).options(joinedload(Product.category)).filter(Product.is_active == True)
+    # 1. Iniciamos la consulta filtrando por tienda y solo los productos activos
+    query = db.query(Product).options(joinedload(Product.category)).filter(
+        Product.store_id == store_id,
+        Product.is_active == True
+    )
     
-    # 2. Búsqueda por nombre: Usamos func.lower para que no importe si es mayúscula o minúscula
+    # 2. Búsqueda por nombre
     if name:
         from sqlalchemy import func
         query = query.filter(func.lower(Product.name).like(f"%{name.lower()}%"))
         
-    # 3. Filtrado por categoría: Solo si el frontend envía un ID válido
+    # 3. Filtrado por categoría
     if category_id:
         query = query.filter(Product.category_id == category_id)
         
-    # 4. Alerta de Stock Bajo: Compara la cantidad actual contra el umbral configurado por el usuario
+    # 4. Alerta de Stock Bajo
     if low_stock:
         query = query.filter(Product.stock_quantity <= Product.min_stock_alert)
         
-    # 5. Paginación: 'skip' salta registros y 'limit' define cuántos traer (vital para el rendimiento)
+    # 5. Paginación
     return query.offset(skip).limit(limit).all()
     
-def create_product(db: Session, product_data: ProductCreate):
-    # --- VALIDACIÓN 1: SKU duplicado (PRO-65) ---
-    # Antes de crear nada, verificamos si el SKU ya existe en la base de datos.
-    existing_product = get_product_by_sku(db, product_data.sku)
+def create_product(db: Session, product_data: ProductCreate, store_id: int):
+    # --- VALIDACIÓN 1: SKU duplicado en la tienda ---
+    existing_product = get_product_by_sku(db, product_data.sku, store_id)
     if existing_product:
-        # HTTP 409 Conflict: El recurso ya existe y no podemos crearlo de nuevo
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
             detail=f"Ya existe un producto con el SKU '{product_data.sku}'"
         )
     
-    # --- VALIDACIÓN 2: Categoría existente (PRO-65) ---
-    # Si el usuario envió un category_id, verificamos que esa categoría exista
+    # --- VALIDACIÓN 2: Categoría perteneciente a la tienda ---
     if product_data.category_id:
-        category = db.query(Category).filter(Category.id == product_data.category_id).first()
+        category = db.query(Category).filter(
+            Category.id == product_data.category_id,
+            Category.store_id == store_id
+        ).first()
         if not category:
-            # HTTP 404 Not Found: La categoría referenciada no existe
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
-                detail=f"Categoría con id '{product_data.category_id}' no encontrada"
+                detail=f"Categoría con id '{product_data.category_id}' no encontrada en esta tienda"
             )
 
-    # 1. Descomprimimos los datos validados del schema en el modelo SQLAlchemy.
-    # Usamos .model_dump() que es el estándar de Pydantic v2 (antes era .dict())
+    # 1. Crear instancia inyectando store_id
     new_product = Product(**product_data.model_dump())
+    new_product.store_id = store_id
     
-    # 2. Lo agregamos a la sesión (la sala de espera de SQLAlchemy)
+    # 2. Persistir
     db.add(new_product)
-    
-    # 3. Guardamos los cambios en la base de datos
     db.commit()
-    
-    # 4. Refrescamos para obtener el ID y campos generados por la DB
     db.refresh(new_product)
     
     return new_product
 
-def delete_product(db: Session, product_id: int):
-    # Reutilizamos nuestra propia función para buscar
-    db_product = get_product_by_id(db, product_id)
+def delete_product(db: Session, product_id: int, store_id: int):
+    db_product = get_product_by_id(db, product_id, store_id)
     
-    # Validación: Si no existe o ya está inactivo, retornamos None (404)
     if not db_product or not db_product.is_active:
         return None
         
-    # Si lo encontramos y está activo, hacemos el soft-delete
     db_product.is_active = False
-    
-    # Guardamos los cambios (esto actualizará updated_at automáticamente)
     db.commit()
-    
     return db_product
 
-def update_product(db: Session, product_id: int, product_data: ProductUpdate):
-    # --- PASO 1: Buscar producto ---
-    db_product = get_product_by_id(db, product_id)
+def update_product(db: Session, product_id: int, product_data: ProductUpdate, store_id: int):
+    # --- PASO 1: Buscar producto de la tienda ---
+    db_product = get_product_by_id(db, product_id, store_id)
     
-    # Validación: Si no existe o está inactivo (soft-delete), retornamos None para dar 404
     if not db_product or not db_product.is_active:
         return None
     
-    # --- VALIDACIÓN (PRO-66): Colisión de SKU ---
-    # Si el usuario quiere cambiar el SKU, verificamos que no pertenezca a otro producto
+    # --- VALIDACIÓN: Colisión de SKU en la tienda ---
     if product_data.sku is not None and product_data.sku != db_product.sku:
-        existing_sku = get_product_by_sku(db, product_data.sku)
+        existing_sku = get_product_by_sku(db, product_data.sku, store_id)
         if existing_sku:
-            # HTTP 409 Conflict: El SKU ya está siendo usado
             raise HTTPException(
                 status_code=status.HTTP_409_CONFLICT,
                 detail=f"El SKU '{product_data.sku}' ya está en uso por otro producto"
             )
     
-    # --- PASO 2: Extraer campos a actualizar ---
-    # Convertimos los datos nuevos a diccionario con model_dump() (Pydantic v2)
-    # 'exclude_unset=True' le dice a Pydantic: "Solo tráeme los campos que el usuario envió"
+    # --- PASO 2: Actualizar objeto ---
     update_data = product_data.model_dump(exclude_unset=True)
-    
-    # --- PASO 3: Actualizar objeto ---
-    # Recorremos el diccionario y actualizamos el objeto de la DB a nivel memoria
+    # Protegemos store_id
+    if "store_id" in update_data:
+        del update_data["store_id"]
+
     for key, value in update_data.items():
-        setattr(db_product, key, value) # Equivalente a db_product.campo = valor
+        setattr(db_product, key, value)
     
-    # --- PASO 4: Guardar y refrescar ---
-    # Al hacer commit, SQLAlchemy auto-actualiza el campo 'updated_at' 
-    # por la configuración 'onupdate=func.now()' en el modelo.
     db.commit()
     db.refresh(db_product)
-    
     return db_product

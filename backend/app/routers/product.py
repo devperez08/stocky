@@ -4,23 +4,17 @@ from typing import List, Optional
 import pandas as pd
 import io
 
-# Importamos las herramientas que necesitamos:
-# 1. get_db: Para conectarnos a la base de datos
-# 2. schemas: Para validar la entrada y salida de datos
-# 3. service: Para ejecutar la lógica de negocio
 from backend.app.core.database import get_db
+from backend.app.core.security import get_current_store_id
 from backend.app.schemas.product import Product, ProductCreate, ProductUpdate, ProductResponse
 from backend.app.services import product as product_service
 
-# Creamos el (Router). 
-# prefix="/products" significa que todas estas rutas empezarán con esa palabra.
-# tags=["products"] ayuda a que en la documentación (/docs) aparezcan agrupadas.
 router = APIRouter(
     prefix="/products",
     tags=["products"]
 )
 
-# --- 1. ENDPOINT PARA LISTAR (Plural) ---
+# --- 1. ENDPOINT PARA LISTAR ---
 @router.get("/", response_model=List[ProductResponse])
 def read_products(
     skip: int = Query(0, ge=0), 
@@ -28,17 +22,13 @@ def read_products(
     name: Optional[str] = None,
     category_id: Optional[int] = None,
     low_stock: bool = False,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    store_id: int = Depends(get_current_store_id)
 ):
-    """
-    Este es el GET para obtener una lista con filtros y paginación.
-    - skip/limit: Controlan la paginación.
-    - name: Filtra por nombre (parcial).
-    - category_id: Filtra por categoría específica.
-    - low_stock: Si es true, muestra productos por agotarse.
-    """
+    """Obtiene la lista de productos de la tienda autenticada."""
     products = product_service.get_products(
         db, 
+        store_id=store_id,
         skip=skip, 
         limit=limit, 
         name=name, 
@@ -47,15 +37,15 @@ def read_products(
     )
     return products
 
-# --- 2. ENDPOINT PARA DETALLE (Singular) ---
-# Usamos {product_id} como una variable en la URL.
+# --- 2. ENDPOINT PARA DETALLE ---
 @router.get("/{product_id}", response_model=Product)
-def read_product(product_id: int, db: Session = Depends(get_db)):
-    """
-    Este es el GET para buscar UN SOLO producto por su ID único.
-    """
-    db_product = product_service.get_product_by_id(db, product_id=product_id)
-    # Si (service) no encuentra nada, devuelve un Error 404.
+def read_product(
+    product_id: int, 
+    db: Session = Depends(get_db),
+    store_id: int = Depends(get_current_store_id)
+):
+    """Busca un producto por ID dentro de la tienda."""
+    db_product = product_service.get_product_by_id(db, product_id=product_id, store_id=store_id)
     if db_product is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, 
@@ -63,29 +53,31 @@ def read_product(product_id: int, db: Session = Depends(get_db)):
         )
     return db_product
 
-# --- 3. ENDPOINT PARA CREAR (PRO-65) ---
-# Usamos ProductResponse para que la respuesta incluya la categoría anidada
+# --- 3. ENDPOINT PARA CREAR ---
 @router.post("/", response_model=ProductResponse, status_code=status.HTTP_201_CREATED)
-def create_product(product: ProductCreate, db: Session = Depends(get_db)):
-    """
-    Crea un nuevo producto. El servicio valida:
-    - Que el SKU no esté duplicado (devuelve 409 si existe).
-    - Que el category_id exista en la base de datos (devuelve 404 si no).
-    Las validaciones de price >= 0 y stock >= 0 las hace Pydantic automáticamente (422).
-    """
-    return product_service.create_product(db=db, product_data=product)
+def create_product(
+    product: ProductCreate, 
+    db: Session = Depends(get_db),
+    store_id: int = Depends(get_current_store_id)
+):
+    """Crea un producto inyectando automáticamente el store_id del token."""
+    return product_service.create_product(db=db, product_data=product, store_id=store_id)
 
-# --- 4. ENDPOINT PARA ACTUALIZAR (PRO-66) ---
-# Usamos PUT (como pide el ticket) para la actualización parcial y retornamos ProductResponse
+# --- 4. ENDPOINT PARA ACTUALIZAR ---
 @router.put("/{product_id}", response_model=ProductResponse)
-def update_product(product_id: int, product: ProductUpdate, db: Session = Depends(get_db)):
-    """
-    Busca el producto y actualiza solo los campos que el usuario envía.
-    Validaciones en el servicio:
-    - Retorna 404 si no existe o está inactivo.
-    - Retorna 409 si el nuevo SKU choca con uno existente.
-    """
-    db_product = product_service.update_product(db=db, product_id=product_id, product_data=product)
+def update_product(
+    product_id: int, 
+    product: ProductUpdate, 
+    db: Session = Depends(get_db),
+    store_id: int = Depends(get_current_store_id)
+):
+    """Actualiza un producto de la tienda."""
+    db_product = product_service.update_product(
+        db=db, 
+        product_id=product_id, 
+        product_data=product, 
+        store_id=store_id
+    )
     if db_product is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, 
@@ -93,15 +85,15 @@ def update_product(product_id: int, product: ProductUpdate, db: Session = Depend
         )
     return db_product
 
-# --- 5. ENDPOINT PARA ELIMINAR
-# Devolvemos un msj de confirmación junto con el ID, y estatus explícito 200 OK
+# --- 5. ENDPOINT PARA ELIMINAR ---
 @router.delete("/{product_id}", status_code=status.HTTP_200_OK)
-def delete_product(product_id: int, db: Session = Depends(get_db)):
-    """
-    Realiza un 'Soft Delete'. No borra el registro físicamente,
-    solo lo marca como 'is_active = False' para preserving the historical data.
-    """
-    db_product = product_service.delete_product(db=db, product_id=product_id)
+def delete_product(
+    product_id: int, 
+    db: Session = Depends(get_db),
+    store_id: int = Depends(get_current_store_id)
+):
+    """Realiza un soft-delete del producto de la tienda."""
+    db_product = product_service.delete_product(db=db, product_id=product_id, store_id=store_id)
     if db_product is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, 
@@ -112,13 +104,14 @@ def delete_product(product_id: int, db: Session = Depends(get_db)):
         "id": product_id
     }
 
-# --- 6. ENDPOINT PARA IMPORTAR MASIVAMENTE (PRO-95) ---
+# --- 6. ENDPOINT PARA IMPORTAR ---
 @router.post("/import", status_code=status.HTTP_200_OK)
 async def import_products_from_excel(
     file: UploadFile = File(...),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    store_id: int = Depends(get_current_store_id)
 ):
-    # Validar tipo de archivo
+    """Importación masiva aislada por tienda."""
     if not file.filename.endswith((".xlsx", ".xls")):
         raise HTTPException(status_code=400, detail="Solo se aceptan archivos .xlsx o .xls")
 
@@ -126,9 +119,8 @@ async def import_products_from_excel(
     try:
         df = pd.read_excel(io.BytesIO(content))
     except Exception:
-        raise HTTPException(status_code=400, detail="No se pudo leer el archivo. Verifica el formato.")
+        raise HTTPException(status_code=400, detail="No se pudo leer el archivo.")
 
-    # Validar columnas requeridas
     required_cols = {"sku", "name", "price"}
     missing = required_cols - set(df.columns.str.lower())
     if missing:
@@ -139,6 +131,8 @@ async def import_products_from_excel(
     results = {"created": 0, "updated": 0, "skipped": 0, "errors": []}
 
     from backend.app.models.product import Product
+    from backend.app.models.category import Category
+    from sqlalchemy import func
 
     for idx, row in df.iterrows():
         try:
@@ -149,38 +143,39 @@ async def import_products_from_excel(
             if not sku or not name or price < 0:
                 raise ValueError("SKU, nombre o precio inválidos")
 
-            from sqlalchemy import func
-            existing = db.query(Product).filter(func.lower(Product.sku) == sku.lower()).first()
+            # Buscar solo en la tienda del usuario
+            existing = db.query(Product).filter(
+                func.lower(Product.sku) == sku.lower(),
+                Product.store_id == store_id
+            ).first()
 
             category_id = None
             if "category" in df.columns and pd.notna(row.get("category")):
                 cat_name = str(row["category"]).strip()
-                from backend.app.models.category import Category
-                category = db.query(Category).filter(func.lower(Category.name) == cat_name.lower()).first()
+                category = db.query(Category).filter(
+                    func.lower(Category.name) == cat_name.lower(),
+                    Category.store_id == store_id
+                ).first()
                 if category:
                     category_id = category.id
                 else:
-                    new_cat = Category(name=cat_name)
+                    new_cat = Category(name=cat_name, store_id=store_id)
                     db.add(new_cat)
                     db.commit()
                     db.refresh(new_cat)
                     category_id = new_cat.id
 
             if existing:
-                # Actualizar — NUNCA modifica stock_quantity
                 existing.name = name
                 existing.price = price
                 if "description" in df.columns and pd.notna(row.get("description")):
                     existing.description = str(row["description"])
-                if "min_stock_alert" in df.columns and pd.notna(row.get("min_stock_alert")):
-                    existing.min_stock_alert = int(row["min_stock_alert"])
                 if category_id:
                     existing.category_id = category_id
                 results["updated"] += 1
             else:
-                # Crear nuevo producto
                 new_product = Product(
-                    sku=sku, name=name, price=price,
+                    sku=sku, name=name, price=price, store_id=store_id,
                     stock_quantity=int(row.get("stock_quantity", 0)) if pd.notna(row.get("stock_quantity")) else 0,
                     min_stock_alert=int(row.get("min_stock_alert", 5)) if pd.notna(row.get("min_stock_alert")) else 5,
                     description=str(row["description"]) if "description" in df.columns and pd.notna(row.get("description")) else None,

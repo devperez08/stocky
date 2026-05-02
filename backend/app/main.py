@@ -7,11 +7,12 @@ from backend.app.core.database import Base, engine
 from backend.app.models import store, user, supplier, category, product, movement
 
 # --- IMPORTACIONES DE ROUTERS ---
-from backend.app.routers import product, category, movement, stats, reports
+from backend.app.routers import product, category, movement, stats, reports, auth
 
 app = FastAPI(title=settings.APP_NAME, version="0.1.0")
 
 # 🔥 Registro de Routers
+app.include_router(auth.router)
 app.include_router(product.router)
 app.include_router(category.router)
 app.include_router(movement.router)
