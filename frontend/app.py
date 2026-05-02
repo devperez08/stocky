@@ -85,26 +85,30 @@ def _render_sidebar(health: dict | None) -> str:
 
         # --- NAVEGACIÓN PRINCIPAL ---
         st.caption("Menú Principal")
-        
-        # Si venimos de hacer clic en el perfil, el radio debe resetearse o no interferir
         options = ["Dashboard", "Productos", "Categorías", "Movimientos", "Reportes"]
         
-        # Si la elección actual es "Configuración", el radio no tendrá ninguna selección visual "activa"
-        index = 0
-        if "menu_choice" in st.session_state and st.session_state.menu_choice in options:
-            index = options.index(st.session_state.menu_choice)
+        # Si no hay elección inicial, por defecto es Dashboard
+        if "menu_choice" not in st.session_state:
+            st.session_state.menu_choice = "Dashboard"
         
-        choice = st.radio(
+        # Calcular el índice para el radio si la página actual está en las opciones
+        try:
+            current_index = options.index(st.session_state.menu_choice)
+        except ValueError:
+            # Si estamos en "Configuración", no resaltamos ninguna opción del radio (o usamos el Dashboard por defecto)
+            current_index = 0
+            
+        def on_nav_change():
+            st.session_state.menu_choice = st.session_state.nav_radio
+
+        st.radio(
             "Navegación",
             options=options,
-            index=index,
+            index=current_index,
             label_visibility="collapsed",
-            key="nav_radio"
+            key="nav_radio",
+            on_change=on_nav_change
         )
-        
-        # Actualizar el estado si el radio cambia
-        if st.session_state.nav_radio != st.session_state.get("menu_choice"):
-            st.session_state.menu_choice = st.session_state.nav_radio
 
         st.divider()
 
@@ -119,7 +123,7 @@ def _render_sidebar(health: dict | None) -> str:
         else:
             st.error("● Servidor Offline")
 
-        return st.session_state.get("menu_choice", "Dashboard")
+        return st.session_state.menu_choice
 
 
 if not _is_authenticated():
