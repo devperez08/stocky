@@ -16,38 +16,110 @@ def _is_authenticated() -> bool:
 
 def _render_sidebar(health: dict | None) -> str:
     with st.sidebar:
-        st.title("📦 Stocky")
+        # --- SECCIÓN DE PERFIL (Estilo Red Social) ---
         store_name = st.session_state.get("store_name", "Tu Tienda")
-        days_left = st.session_state.get("days_remaining", 0)
         plan_status = st.session_state.get("plan_status", "trial")
+        
+        # CSS para el avatar circular y estilo de perfil
+        st.markdown("""
+            <style>
+                .profile-container {
+                    display: flex;
+                    align-items: center;
+                    padding: 10px;
+                    background-color: rgba(151, 166, 195, 0.1);
+                    border-radius: 15px;
+                    margin-bottom: 20px;
+                    border: 1px solid rgba(151, 166, 195, 0.2);
+                }
+                .avatar {
+                    width: 45px;
+                    height: 45px;
+                    background-color: #2e7d32;
+                    color: white;
+                    border-radius: 50%;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    font-weight: bold;
+                    font-size: 20px;
+                    margin-right: 12px;
+                }
+                .profile-info {
+                    flex-grow: 1;
+                }
+                .store-title {
+                    margin: 0;
+                    font-size: 16px;
+                    font-weight: 600;
+                }
+                .plan-badge {
+                    font-size: 11px;
+                    background-color: #ffd700;
+                    color: black;
+                    padding: 1px 6px;
+                    border-radius: 10px;
+                    font-weight: bold;
+                }
+            </style>
+        """, unsafe_allow_html=True)
 
-        st.caption(f"🏪 {store_name}")
-        if plan_status == "trial":
-            st.info(f"⏳ Trial: {days_left} días restantes")
-        elif plan_status == "active":
-            st.success(f"✅ Suscripción activa - {days_left} días restantes")
-        else:
-            st.warning(f"⚠️ Plan {plan_status} - {days_left} días restantes")
+        initial = store_name[0].upper() if store_name else "S"
+        badge_html = f'<span class="plan-badge">{plan_status.upper()}</span>' if plan_status == "trial" else f'<span class="plan-badge" style="background-color: #4caf50; color: white;">PRO</span>'
+        
+        st.markdown(f"""
+            <div class="profile-container">
+                <div class="avatar">{initial}</div>
+                <div class="profile-info">
+                    <p class="store-title">{store_name}</p>
+                    {badge_html}
+                </div>
+            </div>
+        """, unsafe_allow_html=True)
 
-        if st.button("🚪 Cerrar Sesión", use_container_width=True):
-            for key in ("token", "store_name", "days_remaining", "plan_status"):
-                st.session_state.pop(key, None)
+        if st.button("⚙️ Configuración del Perfil", use_container_width=True):
+            st.session_state.menu_choice = "Configuración"
             st.rerun()
 
         st.divider()
-        if health:
-            st.success("● Backend Conectado")
-        else:
-            st.error("● Backend Desconectado")
-            st.caption("Asegúrate de que la API esté corriendo.")
 
-        st.caption("Sistema de Gestión de Inventarios")
-        st.divider()
-        return st.radio(
+        # --- NAVEGACIÓN PRINCIPAL ---
+        st.caption("Menú Principal")
+        
+        # Si venimos de hacer clic en el perfil, el radio debe resetearse o no interferir
+        options = ["Dashboard", "Productos", "Categorías", "Movimientos", "Reportes"]
+        
+        # Si la elección actual es "Configuración", el radio no tendrá ninguna selección visual "activa"
+        index = 0
+        if "menu_choice" in st.session_state and st.session_state.menu_choice in options:
+            index = options.index(st.session_state.menu_choice)
+        
+        choice = st.radio(
             "Navegación",
-            options=["Dashboard", "Productos", "Categorías", "Movimientos", "Reportes", "Configuración"],
-            label_visibility="collapsed"
+            options=options,
+            index=index,
+            label_visibility="collapsed",
+            key="nav_radio"
         )
+        
+        # Actualizar el estado si el radio cambia
+        if st.session_state.nav_radio != st.session_state.get("menu_choice"):
+            st.session_state.menu_choice = st.session_state.nav_radio
+
+        st.divider()
+
+        # --- ESTADO Y CIERRE ---
+        if st.button("🚪 Cerrar Sesión", use_container_width=True):
+            for key in list(st.session_state.keys()):
+                st.session_state.pop(key, None)
+            st.rerun()
+
+        if health:
+            st.success("● Servidor Activo")
+        else:
+            st.error("● Servidor Offline")
+
+        return st.session_state.get("menu_choice", "Dashboard")
 
 
 if not _is_authenticated():

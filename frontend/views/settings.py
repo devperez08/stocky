@@ -85,7 +85,6 @@ def render():
             - ✅ **Reportes Excel y CSV**
             - ✅ **Historial completo** de movimientos
             - ✅ **Importación masiva** desde Excel
-            - ✅ **Soporte prioritario** por WhatsApp
             """)
             
             if plan == "active":
