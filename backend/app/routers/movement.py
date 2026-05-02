@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 from typing import List, Optional
 from datetime import datetime
 from backend.app.core.database import get_db
-from backend.app.core.security import get_current_store_id
+from backend.app.core.subscription import check_subscription_active
 from backend.app.schemas.movement import MovementResponse, MovementCreate
 from backend.app.services import movement as movement_service
 from backend.app.models.movement import MovementType
@@ -17,7 +17,7 @@ router = APIRouter(
 def create_movement(
     movement: MovementCreate, 
     db: Session = Depends(get_db),
-    store_id: int = Depends(get_current_store_id)
+    store_id: int = Depends(check_subscription_active)
 ):
     """Registra una entrada o salida inyectando store_id."""
     return movement_service.create_movement(db=db, movement_data=movement, store_id=store_id)
@@ -31,7 +31,7 @@ def get_movements(
     skip: int = 0,
     limit: int = 100,
     db: Session = Depends(get_db),
-    store_id: int = Depends(get_current_store_id)
+    store_id: int = Depends(check_subscription_active)
 ):
     """Devuelve historial de movimientos de la tienda."""
     return movement_service.get_movements(
@@ -49,7 +49,7 @@ def get_movements(
 def void_movement(
     movement_id: int, 
     db: Session = Depends(get_db),
-    store_id: int = Depends(get_current_store_id)
+    store_id: int = Depends(check_subscription_active)
 ):
     """Anula un movimiento propio y revierte el stock."""
     from backend.app.models.movement import Movement

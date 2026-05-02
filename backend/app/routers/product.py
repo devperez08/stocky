@@ -6,6 +6,7 @@ import io
 
 from backend.app.core.database import get_db
 from backend.app.core.security import get_current_store_id
+from backend.app.core.subscription import check_subscription_active
 from backend.app.schemas.product import Product, ProductCreate, ProductUpdate, ProductResponse
 from backend.app.services import product as product_service
 
@@ -23,7 +24,7 @@ def read_products(
     category_id: Optional[int] = None,
     low_stock: bool = False,
     db: Session = Depends(get_db),
-    store_id: int = Depends(get_current_store_id)
+    store_id: int = Depends(check_subscription_active)
 ):
     """Obtiene la lista de productos de la tienda autenticada."""
     products = product_service.get_products(
@@ -42,7 +43,7 @@ def read_products(
 def read_product(
     product_id: int, 
     db: Session = Depends(get_db),
-    store_id: int = Depends(get_current_store_id)
+    store_id: int = Depends(check_subscription_active)
 ):
     """Busca un producto por ID dentro de la tienda."""
     db_product = product_service.get_product_by_id(db, product_id=product_id, store_id=store_id)
@@ -58,7 +59,7 @@ def read_product(
 def create_product(
     product: ProductCreate, 
     db: Session = Depends(get_db),
-    store_id: int = Depends(get_current_store_id)
+    store_id: int = Depends(check_subscription_active)
 ):
     """Crea un producto inyectando automáticamente el store_id del token."""
     return product_service.create_product(db=db, product_data=product, store_id=store_id)
@@ -69,7 +70,7 @@ def update_product(
     product_id: int, 
     product: ProductUpdate, 
     db: Session = Depends(get_db),
-    store_id: int = Depends(get_current_store_id)
+    store_id: int = Depends(check_subscription_active)
 ):
     """Actualiza un producto de la tienda."""
     db_product = product_service.update_product(
@@ -90,7 +91,7 @@ def update_product(
 def delete_product(
     product_id: int, 
     db: Session = Depends(get_db),
-    store_id: int = Depends(get_current_store_id)
+    store_id: int = Depends(check_subscription_active)
 ):
     """Realiza un soft-delete del producto de la tienda."""
     db_product = product_service.delete_product(db=db, product_id=product_id, store_id=store_id)
@@ -109,7 +110,7 @@ def delete_product(
 async def import_products_from_excel(
     file: UploadFile = File(...),
     db: Session = Depends(get_db),
-    store_id: int = Depends(get_current_store_id)
+    store_id: int = Depends(check_subscription_active)
 ):
     """Importación masiva aislada por tienda."""
     if not file.filename.endswith((".xlsx", ".xls")):

@@ -4,6 +4,7 @@ from sqlalchemy.orm import Session
 from typing import List
 from backend.app.core.database import get_db
 from backend.app.core.security import get_current_store_id
+from backend.app.core.subscription import check_subscription_active
 from backend.app.schemas.category import CategoryResponse, CategoryCreate, CategoryUpdate
 from backend.app.services import category as category_service
 
@@ -15,7 +16,7 @@ router = APIRouter(
 @router.get("/", response_model=List[CategoryResponse])
 def read_categories(
     db: Session = Depends(get_db),
-    store_id: int = Depends(get_current_store_id)
+    store_id: int = Depends(check_subscription_active)
 ):
     """Lista todas las categorías de la tienda autenticada"""
     return category_service.get_categories(db, store_id=store_id)
@@ -24,7 +25,7 @@ def read_categories(
 def create_category(
     category: CategoryCreate, 
     db: Session = Depends(get_db),
-    store_id: int = Depends(get_current_store_id)
+    store_id: int = Depends(check_subscription_active)
 ):
     """Crea una nueva categoría para la tienda (Inyecta store_id del token)"""
     return category_service.create_category(db, category_data=category, store_id=store_id)
@@ -34,7 +35,7 @@ def update_category(
     category_id: int, 
     category: CategoryUpdate, 
     db: Session = Depends(get_db),
-    store_id: int = Depends(get_current_store_id)
+    store_id: int = Depends(check_subscription_active)
 ):
     """Actualiza una categoría propia"""
     db_category = category_service.update_category(
@@ -51,7 +52,7 @@ def update_category(
 def delete_category(
     category_id: int, 
     db: Session = Depends(get_db),
-    store_id: int = Depends(get_current_store_id)
+    store_id: int = Depends(check_subscription_active)
 ):
     """Elimina una categoría propia si no tiene productos activos"""
     db_category = category_service.delete_category(db, category_id=category_id, store_id=store_id)

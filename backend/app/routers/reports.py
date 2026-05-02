@@ -7,6 +7,7 @@ from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session, joinedload
 from backend.app.core.database import get_db
 from backend.app.core.security import get_current_store_id
+from backend.app.core.subscription import check_subscription_active
 from backend.app.models.product import Product
 from backend.app.models.movement import Movement, MovementType
 
@@ -35,7 +36,7 @@ def _build_streaming_response(buffer, fmt: str, filename_base: str):
 def inventory_report(
     format: str = Query("json", description="Formato de salida: 'json', 'csv' o 'excel'"),
     db: Session = Depends(get_db),
-    store_id: int = Depends(get_current_store_id)
+    store_id: int = Depends(check_subscription_active)
 ):
     """Reporte de inventario filtrado por tienda."""
     products = db.query(Product).options(
@@ -78,7 +79,7 @@ def movements_report(
     date_from: Optional[datetime] = Query(None),
     date_to: Optional[datetime] = Query(None),
     db: Session = Depends(get_db),
-    store_id: int = Depends(get_current_store_id)
+    store_id: int = Depends(check_subscription_active)
 ):
     """Reporte de movimientos filtrado por tienda."""
     query = db.query(Movement).options(joinedload(Movement.product)).filter(
