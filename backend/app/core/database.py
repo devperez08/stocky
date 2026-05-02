@@ -1,32 +1,49 @@
-from sqlalchemy import create_engine # create_all para crear las tablas en la base de datos, create_engine para crear la conexión a la base de datos
-from sqlalchemy.ext.declarative import declarative_base # declarative_base para crear la clase base de los modelos
-from sqlalchemy.orm import sessionmaker # sessionmaker para crear la fábrica de sesiones
-from backend.app.core.config import settings # Importamos la configuración global
+# =============================================================================
+# Configuración de la Base de Datos — Dual SQLite / PostgreSQL
+# =============================================================================
+# Soporta dos motores:
+#   - SQLite  (desarrollo local, legacy): sqlite:///./stocky.db
+#   - PostgreSQL / Supabase (producción): postgresql://...
+# El motor se selecciona automáticamente según el DATABASE_URL del .env
+# =============================================================================
 
-# 1. Definimos dónde estará el archivo de la base de datos desde la config
+from sqlalchemy import create_engine
+from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import sessionmaker
+from backend.app.core.config import settings
+
 SQLALCHEMY_DATABASE_URL = settings.DATABASE_URL
 
-# 2. Creamos el motor (Engine)
-# 'check_same_thread=False' es solo necesario para SQLite
-engine = create_engine(
-    SQLALCHEMY_DATABASE_URL, connect_args={"check_same_thread": False}
-)
+# ── Motor de base de datos ─────────────────────────────────────────────────
+if SQLALCHEMY_DATABASE_URL.startswith("sqlite"):
+    # SQLite: requiere check_same_thread=False para entornos multi-hilo
+    engine = create_engine(
+        SQLALCHEMY_DATABASE_URL,
+        connect_args={"check_same_thread": False}
+    )
+else:
+    # PostgreSQL / Supabase: pool de conexiones con pre-ping para reconexión automática
+    engine = create_engine(
+        SQLALCHEMY_DATABASE_URL,
+        pool_pre_ping=True,        # Verifica la conexión antes de usarla
+        pool_size=5,               # Conexiones activas en el pool
+        max_overflow=10            # Conexiones extra en picos de carga
+    )
 
-# 3. Creamos la fábrica de sesiones (para hacer consultas)
+# ── Fábrica de sesiones ────────────────────────────────────────────────────
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
-# 4. Esta es la clase base de la que heredarán todos nuestros modelos
+# ── Clase base para los modelos ORM ───────────────────────────────────────
 Base = declarative_base()
 
-#ESTANDAR UNIVERSAL PARA QUE FASTAPI PUEDA CONECTARSE A LA BASE DE DATOS
-
-# 5. Dependencia para obtener la sesión de la base de datos (get_db)
-# Esta función es un "generador": abre la conexión, la entrega y la cierra al final.
+# ── Dependencia FastAPI: obtiene y cierra la sesión de BD ─────────────────
 def get_db():
+    """
+    Generador de sesión de base de datos para inyección de dependencias en FastAPI.
+    Abre la sesión antes del request y la cierra automáticamente al finalizar.
+    """
     db = SessionLocal()
     try:
         yield db
     finally:
         db.close()
-
-
