@@ -33,6 +33,18 @@ def _handle_http_error(error: httpx.HTTPStatusError, endpoint: str, show_error: 
         if show_error:
             st.warning("Tu sesion expiro o es invalida. Inicia sesion nuevamente.")
         st.rerun()
+    
+    # Interceptar bloqueo por suscripción expirada
+    if status_code == 403:
+        try:
+            detail = error.response.json().get("detail", {})
+            if isinstance(detail, dict) and detail.get("error") == "subscription_expired":
+                st.session_state["subscription_expired"] = True
+                st.session_state["expiry_detail"] = detail
+                st.rerun()
+        except Exception:
+            pass
+
     if show_error:
         st.error(f"Error {status_code} en {endpoint}: {error.response.text}")
 

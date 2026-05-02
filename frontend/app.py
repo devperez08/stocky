@@ -54,6 +54,12 @@ if not _is_authenticated():
     auth.render()
     st.stop()
 
+# --- GUARD DE SUSCRIPCIÓN ---
+if st.session_state.get("subscription_expired"):
+    from views import subscription_expired
+    subscription_expired.render()
+    st.stop()
+# ----------------------------
 
 health = api_client.get("/health", show_error=False)
 
