@@ -11,7 +11,7 @@ class Product(Base):
     )
 
     id = Column(Integer, primary_key=True, index=True)
-    name = Column(String(200), nullable=False, index=True)
+    name = Column(String(200), nullable=False)
     sku = Column(String(100), unique=True, nullable=False)  # Código de barras / Identificador único
     description = Column(String(500), nullable=True)
     price = Column(Float, nullable=False, default=0.0)  # Precio de venta
@@ -22,8 +22,7 @@ class Product(Base):
 
     # --- RELACIONES (Foreign Keys) ---
     # Multi-tenant: cada producto pertenece a una tienda (store_id).
-    # nullable=True permite desarrollo local sin autenticación (MVP).
-    store_id = Column(Integer, ForeignKey("stores.id"), nullable=True)
+    store_id = Column(Integer, ForeignKey("stores.id"), nullable=False, index=True)
     store = relationship("Store", back_populates="products")
 
     category_id = Column(Integer, ForeignKey("categories.id"), nullable=True)

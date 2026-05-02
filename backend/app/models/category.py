@@ -14,7 +14,7 @@ class Category(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
     # Multi-tenant: ¿A qué local pertenece esta categoría?
-    store_id = Column(Integer, ForeignKey("stores.id"), nullable=True)
+    store_id = Column(Integer, ForeignKey("stores.id"), nullable=False, index=True)
     store = relationship("Store", back_populates="categories")
 
     # Una categoría agrupa muchos productos

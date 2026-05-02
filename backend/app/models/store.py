@@ -10,11 +10,19 @@
 
 from sqlalchemy import (
     Column, Integer, String, Boolean, Date, DateTime,
-    CheckConstraint, func
+    CheckConstraint, func, Enum as SAEnum
 )
 from sqlalchemy.orm import relationship
 from backend.app.core.database import Base
 import datetime
+from datetime import date
+import enum
+
+
+class PlanStatus(str, enum.Enum):
+    TRIAL = "trial"
+    ACTIVE = "active"
+    EXPIRED = "expired"
 
 
 class Store(Base):
@@ -35,20 +43,20 @@ class Store(Base):
     phone   = Column(String(20),  nullable=True)
 
     # ── Acceso / Auth del administrador de la tienda ─────────────────────────
-    email         = Column(String(255), unique=True, nullable=False)
+    email         = Column(String(255), unique=True, nullable=False, index=True)
     password_hash = Column(String(255), nullable=False)          # NUNCA texto plano
 
     # ── SaaS: Trial y Suscripción ────────────────────────────────────────────
-    trial_start_date         = Column(Date, nullable=False, default=datetime.date.today)
+    trial_start_date         = Column(Date, nullable=False, default=date.today)
     subscription_expiry_date = Column(
         Date,
         nullable=False,
-        default=lambda: datetime.date.today() + datetime.timedelta(days=14)
+        default=lambda: date.today() + datetime.timedelta(days=14)
     )
     plan_status = Column(
-        String(20),
+        SAEnum(PlanStatus, values_callable=lambda x: [e.value for e in x]),
         nullable=False,
-        default="trial"   # trial → active → expired
+        default=PlanStatus.TRIAL
     )
 
     # ── Estado y auditoría ───────────────────────────────────────────────────
@@ -62,3 +70,17 @@ class Store(Base):
     movements  = relationship("Movement",  back_populates="store", cascade="all, delete-orphan")
     users      = relationship("User",      back_populates="store")
     suppliers  = relationship("Supplier",  back_populates="store")
+
+    @property
+    def days_remaining(self) -> int:
+        """Días restantes de suscripción (puede ser negativo si expiró)."""
+        delta = self.subscription_expiry_date - date.today()
+        return delta.days
+
+    @property
+    def is_subscription_active(self) -> bool:
+        """True si la suscripción está vigente (trial o active, sin expirar)."""
+        return (
+            self.plan_status != PlanStatus.EXPIRED
+            and self.subscription_expiry_date >= date.today()
+        )

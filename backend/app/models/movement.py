@@ -31,7 +31,7 @@ class Movement(Base):
 
     # --- RELACIONES ---
     # Multi-tenant
-    store_id = Column(Integer, ForeignKey("stores.id"), nullable=True)
+    store_id = Column(Integer, ForeignKey("stores.id"), nullable=False, index=True)
     store = relationship("Store", back_populates="movements")
 
     # ¿Qué producto se movió?
