@@ -113,7 +113,7 @@ CREATE TABLE IF NOT EXISTS movements (
     product_id            INTEGER       NOT NULL REFERENCES products(id),
     movement_type         VARCHAR(10)   NOT NULL CHECK (movement_type IN ('entry', 'exit')),
     quantity              INTEGER       NOT NULL CHECK (quantity > 0),
-    unit_value            FLOAT,
+    unit_price            FLOAT         NOT NULL DEFAULT 0,
     reason                VARCHAR(255),
     -- Anulaciones (PRO-96)
     is_voided             BOOLEAN       NOT NULL DEFAULT FALSE,
@@ -168,7 +168,7 @@ VALUES (
 );
 
 -- Insertar un movimiento de prueba
-INSERT INTO movements (store_id, product_id, movement_type, quantity, unit_value, reason)
+INSERT INTO movements (store_id, product_id, movement_type, quantity, unit_price, reason)
 VALUES (
     (SELECT id FROM stores WHERE slug = 'tienda-demo-stocky'),
     (SELECT id FROM products WHERE sku = 'AUDIO-BT-001'),
