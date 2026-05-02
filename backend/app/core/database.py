@@ -14,6 +14,10 @@ from backend.app.core.config import settings
 
 SQLALCHEMY_DATABASE_URL = settings.DATABASE_URL
 
+# 🔥 FIX: Render/Supabase a veces usan 'postgres://' que es incompatible con SQLAlchemy 2.0+
+if SQLALCHEMY_DATABASE_URL and SQLALCHEMY_DATABASE_URL.startswith("postgres://"):
+    SQLALCHEMY_DATABASE_URL = SQLALCHEMY_DATABASE_URL.replace("postgres://", "postgresql://", 1)
+
 # ── Motor de base de datos ─────────────────────────────────────────────────
 if SQLALCHEMY_DATABASE_URL.startswith("sqlite"):
     # SQLite: requiere check_same_thread=False para entornos multi-hilo
