@@ -45,7 +45,7 @@ def _render_sidebar(health: dict | None) -> str:
         st.divider()
         return st.radio(
             "Navegación",
-            options=["Dashboard", "Productos", "Categorías", "Movimientos", "Reportes"],
+            options=["Dashboard", "Productos", "Categorías", "Movimientos", "Reportes", "Configuración"],
             label_visibility="collapsed"
         )
 
@@ -76,3 +76,5 @@ elif menu == "Movimientos":
     from views import movements; movements.render()
 elif menu == "Reportes":
     from views import reports; reports.render()
+elif menu == "Configuración":
+    from views import settings; settings.render()

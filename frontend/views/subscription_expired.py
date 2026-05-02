@@ -42,8 +42,7 @@ def render():
         ✅ **Inventario ilimitado** de productos  
         ✅ **Dashboard** en tiempo real con KPIs  
         ✅ **Reportes** exportables a Excel y CSV  
-        ✅ **Registro de movimientos** con trazabilidad  
-        ✅ **Soporte prioritario** por WhatsApp
+        ✅ **Registro de movimientos** con trazabilidad
         """)
         st.markdown("---")
         

@@ -7,7 +7,7 @@ from pydantic import BaseModel, EmailStr, Field
 from sqlalchemy.orm import Session
 
 from backend.app.core.database import get_db
-from backend.app.core.security import create_access_token, hash_password, verify_password
+from backend.app.core.security import create_access_token, hash_password, verify_password, get_current_store_id
 from backend.app.models.store import PlanStatus, Store
 
 router = APIRouter(
@@ -112,3 +112,26 @@ def oauth2_token(form_data: OAuth2PasswordRequestForm = Depends(), db: Session =
     Reutiliza exactamente la misma logica de /auth/login.
     """
     return login(form_data=form_data, db=db)
+
+@router.get("/me")
+def get_current_store(
+    store_id: int = Depends(get_current_store_id),
+    db: Session = Depends(get_db)
+):
+    """
+    Retorna la información detallada de la tienda actual autenticada.
+    Utilizado por el panel de configuración/suscripción.
+    """
+    store = db.query(Store).filter(Store.id == store_id).first()
+    if not store:
+        raise HTTPException(status_code=404, detail="Tienda no encontrada")
+        
+    return {
+        "id": store.id,
+        "name": store.name,
+        "email": store.email,
+        "plan_status": store.plan_status.value if hasattr(store.plan_status, "value") else str(store.plan_status),
+        "subscription_expiry_date": str(store.subscription_expiry_date),
+        "days_remaining": store.days_remaining,
+        "trial_start_date": str(store.trial_start_date)
+    }
