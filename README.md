@@ -43,8 +43,6 @@ Si quieres que Stocky se abra **solo** al encender la computadora:
 3. Copia el archivo `launcher_windows.bat` (o crea un acceso directo) y pégalo en esa carpeta que se abrió.
 4. ¡Eso es todo! La próxima vez que prendas el PC, Stocky se iniciará y abrirá el navegador por ti.
 
----
-
 ## 🛠️ Instalación Local (Desarrolladores)
 
 Si prefieres correrlo directamente con Python:
